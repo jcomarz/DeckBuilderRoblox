@@ -1,0 +1,3353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Builder — Card Forge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --ink:#0b0e1a; --ink2:#131829; --panel:#171d33; --line:#2a3253;
+    --text:#e9ecf7; --dim:#8891b3; --accent:#5eead4; --accent2:#f472b6;
+    --c:#8a93ad; --b:#5fae6f; --a:#5b9bf0; --s:#b26cf0; --r:#f5c451;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI',system-ui,sans-serif;
+    background:radial-gradient(circle at 15% 0%, #1a2140 0%, transparent 45%),
+               radial-gradient(circle at 85% 10%, #221a3d 0%, transparent 40%), var(--ink);
+    color:var(--text); min-height:100vh; padding:20px 16px 60px;
+  }
+  h1{font-family:Georgia,serif;font-weight:700;font-size:26px;margin:0 0 2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:16px;}
+  .topbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--accent);margin:0 0 12px;}
+  label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px;margin-top:10px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=password]{
+    width:100%;background:var(--ink2);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:8px;font-size:14px;
+  }
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:140px;}
+  button{background:linear-gradient(135deg,var(--accent),#33c9b0);color:#06251f;border:none;font-weight:700;
+    padding:10px 16px;border-radius:9px;cursor:pointer;font-size:13px;margin-top:12px;}
+  button.secondary{background:var(--ink2);color:var(--text);border:1px solid var(--line);}
+  button.ghost{background:transparent;color:var(--dim);border:1px dashed var(--line);}
+  button.danger{background:#3a1a24;color:#f78ca2;border:1px solid #5a2536;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.small{padding:6px 10px;font-size:12px;margin-top:0;}
+  .status{font-size:12px;color:var(--dim);margin-top:8px;min-height:16px;}
+  .members{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;}
+  .member-slot{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;}
+  .member-slot img.face{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--line);margin-bottom:6px;background:#000;cursor:pointer;}
+  .member-slot .ph{width:64px;height:64px;border-radius:50%;margin:0 auto 6px;background:var(--ink);border:2px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);cursor:pointer;}
+  .member-slot input[type=text]{font-size:12px;text-align:center;padding:6px;margin-bottom:6px;}
+  .member-slot label.chk{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;margin-top:8px;color:var(--dim);}
+  .photoCount{font-size:10px;color:var(--dim);margin-bottom:6px;}
+  .photoStrip{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px;}
+  .photoThumb{position:relative;width:34px;height:34px;}
+  .photoThumb img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--line);cursor:pointer;}
+  .photoThumb:hover img{border-color:var(--accent);}
+  .photoDel{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#3a1a24;color:#f78ca2;border:1px solid #5a2536;font-size:9px;line-height:1;cursor:pointer;padding:0;margin:0;}
+  .mbtnrow{display:flex;gap:4px;}
+  .mbtnrow button{flex:1;margin:0;padding:6px 4px;font-size:10px;}
+  .searchResults{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:6px;}
+  .searchResults img{width:44px;height:44px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid var(--line);}
+  .searchResults img:hover{border-color:var(--accent);}
+  .castPickList{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px;}
+  .castPickItem{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;}
+  .castPickItem:last-child{border-bottom:none;}
+  .castPickItem:hover{background:var(--ink2);}
+  .castPickItem img{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;}
+  .castPickItem .castPh{width:34px;height:34px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;flex:none;}
+  .castPickItem input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:none;}
+  .showPickItem{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer;}
+  .showPickItem:hover{background:var(--ink2);border-color:var(--accent);}
+  .showPickItem img{width:46px;height:64px;object-fit:cover;border-radius:6px;flex:none;background:var(--ink);}
+  .showPickItem .spInfo{flex:1;min-width:0;}
+  .showPickItem .spTitle{font-weight:700;font-size:13px;}
+  .showPickItem .spMeta{font-size:11px;color:var(--dim);}
+  .editStage{width:240px;height:240px;border-radius:50%;overflow:hidden;position:relative;margin:0 auto 14px;background:#000;touch-action:none;user-select:none;}
+  .editStage img{position:absolute;left:0;top:0;max-width:none;pointer-events:none;}
+  .tracks{max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;}
+  .track{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+  .track:last-child{border-bottom:none;}
+  .track img{width:34px;height:34px;border-radius:5px;object-fit:cover;}
+  .track .meta{flex:1;min-width:0;}
+  .track .meta .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .track .meta .a{color:var(--dim);font-size:11px;}
+  .track-actions{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:11px;color:var(--dim);}
+  a.linkbtn{color:var(--accent);font-size:12px;text-decoration:none;}
+  .poolcount, .count-pill{display:inline-block;background:var(--ink2);border:1px solid var(--line);padding:2px 9px;border-radius:20px;font-size:11px;color:var(--dim);margin-left:8px;}
+  .previewcard{position:relative;width:150px;aspect-ratio:5/7;border-radius:14px;overflow:hidden;background:#000;border:3px solid var(--line);margin:10px auto 0;}
+  .previewcard img{width:100%;height:100%;object-fit:cover;display:block;}
+  .empty{color:var(--dim);font-size:13px;padding:20px;text-align:center;}
+  .modal-bg{position:fixed;inset:0;background:rgba(4,6,14,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal h3{margin:0 0 4px;font-size:16px;}
+  .grademeta{font-size:12px;color:var(--dim);margin-bottom:14px;}
+  .closebtn{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;margin:0;padding:0;}
+  .actionrow{display:flex;gap:8px;}
+  .actionrow button{flex:1;}
+  @media (max-width: 640px){
+    body{padding:14px 10px 60px;}
+    h1{font-size:22px;}
+    .sub{font-size:12px;}
+    .panel{padding:14px 14px 16px;border-radius:16px;margin-bottom:14px;}
+    .panel h2{font-size:12px;}
+    .row{gap:8px;}
+    .row > div{min-width:0;flex:1 1 100%;}
+    input[type=text],input[type=password]{font-size:16px;padding:12px 12px;}
+    button{padding:13px 16px;font-size:13px;}
+    .members{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;}
+    .member-slot img.face,.member-slot .ph{width:56px;height:56px;}
+    .tracks{max-height:220px;}
+    .track{padding:9px 10px;font-size:12px;}
+    .modal{padding:16px;border-radius:16px;max-height:90vh;}
+    .editStage{width:200px;height:200px;}
+  }
+</style>
+</head>
+<body>
+
+<h1>Deck Builder <span style="font-size:11px; color:#94a3b8; font-weight:normal;">v2.9.0</span></h1>
+<div class="sub">Build one self-contained "deck" per artist: members + face bubbles + discography. Export it, then import into the Card Collection app to actually play.</div>
+
+<div class="panel" id="cloudPanel">
+  <h2>☁️ Persona City sync</h2>
+  <div class="status" id="cloudStatus">Connecting to Persona City...</div>
+  <label>Room code</label>
+  <input type="text" id="roomCodeInput" value="FVHA" style="text-transform:uppercase; max-width:120px;" maxlength="6">
+  <label>Publisher name (shown as "publishedBy" on your decks)</label>
+  <input type="text" id="publisherNameInput" placeholder="e.g. jerico" maxlength="24">
+  <div class="row">
+    <button id="applyRoomBtn" type="button">Apply</button>
+    <button class="secondary" id="importFromFbBtn" type="button">📥 Import from Firebase</button>
+    <button class="secondary" id="importFromJsonBtn" type="button">📂 Import JSON file</button>
+    <input type="file" id="importFileInput" accept=".json" style="display:none;">
+  </div>
+  <!-- v2.7.1: Migrate legacy per-room decks up to the shared pool.
+       Reads rooms/{roomCode}/publishedDecks and copies anything not
+       already in rooms/_global/publishedDecks. Idempotent — safe to
+       run repeatedly. Auto-fires on connect too. -->
+  <div class="row" style="margin-top:8px;">
+    <button class="secondary" id="migrateLegacyBtn" type="button">🌐 Migrate this room's decks → global pool</button>
+    <span id="migrateStatus" style="font-size:11px; color:#888;"></span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Deck</h2>
+  <label>Content type</label>
+  <div class="row" style="gap:16px;">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="contentType" value="music" checked> 🎵 Music (artist / album / song / member)</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="contentType" value="tv"> 📺 TV show (show / season / episode / character)</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="contentType" value="movie"> 🎬 Movies (actor / decade / movie / character)</label>
+  </div>
+  <div class="row" style="margin-top:12px;">
+    <div><label id="deckNameLabel">Deck / artist name</label><input type="text" id="deckName" placeholder="e.g. aespa">
+      <div class="status" id="currentDeckIdStatus" style="margin-top:4px;"></div>
+    </div>
+  </div>
+  <div class="row">
+    <button class="secondary" id="newDeckBtn" type="button">New deck</button>
+    <button class="secondary" id="loadDeckBtn" type="button">Load deck to keep editing</button>
+    <input type="file" id="loadDeckFile" accept="application/json" style="display:none;">
+    <button id="exportDeckBtn" type="button">Export deck file</button>
+    <button class="secondary" id="publishDeckBtn" type="button" style="display:none;">☁️ Publish to Firebase</button>
+    <button class="secondary" id="loadFromCloudBtn" type="button" style="display:none;">☁️ Load deck from Firebase</button>
+  </div>
+  <div class="status" id="deckStatus"></div>
+  <div id="cloudDeckPicker" style="display:none;margin-top:10px;"></div>
+</div>
+
+<div class="panel" id="credsPanel">
+  <h2>1 · Spotify credentials</h2>
+  <div class="row">
+    <div><label>Client ID</label><input type="text" id="clientId" placeholder="from developer.spotify.com/dashboard"></div>
+    <div><label>Client Secret</label><input type="password" id="clientSecret" placeholder="kept only in this browser"></div>
+  </div>
+  <button id="connectBtn">Connect</button>
+  <button class="secondary" id="forgetCredsBtn" type="button">Forget credentials</button>
+  <div class="status" id="credStatus"></div>
+</div>
+
+<div class="panel" id="tmdbCredsPanel" style="display:none;">
+  <h2>1 · TMDB credentials</h2>
+  <div class="status">Free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org/settings/api</a>. Uses the v3 auth key (a plain string). Kept only in this browser (localStorage).</div>
+  <div class="row">
+    <div style="flex:1"><label>API key</label><input type="password" id="tmdbKey" placeholder="paste v3 API key here"></div>
+  </div>
+  <button id="tmdbConnectBtn" type="button">Connect</button>
+  <button class="secondary" id="tmdbForgetBtn" type="button">Forget key</button>
+  <div class="status" id="tmdbStatus"></div>
+</div>
+
+<div class="panel">
+  <h2 id="membersHeading">2 · Member face bubbles</h2>
+  <div class="status" id="memberStatus">Upload, paste (Ctrl+V), or search Spotify for a face photo, then crop it to fit the bubble.</div>
+  <button class="secondary" id="fetchCastBtn" type="button" style="display:none;">📺 Fetch cast list from TVmaze</button>
+  <button class="secondary" id="fetchMovieCharactersBtn" type="button" style="display:none;">🎬 Auto-fill characters from filmography</button>
+  <div id="castPicker" style="display:none;margin-top:12px;">
+    <div class="track-actions">
+      <span><a class="linkbtn" href="#" id="castSelectAll">select all</a> · <a class="linkbtn" href="#" id="castSelectNone">none</a></span>
+    </div>
+    <div class="castPickList" id="castPickerList"></div>
+    <button id="addSelectedCastBtn" type="button" style="width:100%;">+ Add selected characters</button>
+  </div>
+  <div class="members" id="memberGrid" style="margin-top:12px;"></div>
+  <button class="ghost" id="addMemberBtn" type="button">+ add member slot</button>
+</div>
+
+<div class="panel">
+  <h2 id="discographyHeading">3 · Pull discography</h2>
+  <div class="row"><div><label id="artistNameLabel">Artist</label><input type="text" id="artistName" value="aespa"></div></div>
+  <div id="musicSourceControls">
+  <label style="margin-top:12px;">Pull</label>
+  <div class="row" style="gap:16px;">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="musicScope" value="artist" checked> 🎤 Artist's full discography</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="musicScope" value="album"> 💿 One specific album (soundtrack, compilation, etc.)</label>
+  </div>
+  <label style="margin-top:12px;">Source</label>
+  <div class="row" style="gap:16px;">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="fetchSource" value="spotify" checked> Spotify (needs credentials above)</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="fetchSource" value="itunes"> iTunes/Apple Music (no auth, separate rate limit)</label>
+  </div>
+  <div id="artistScopeControls">
+  <label style="margin-top:12px;">Include release types</label>
+  <div class="row" style="gap:16px;">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="checkbox" id="incAlbum" checked> albums</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="checkbox" id="incSingle" checked> singles</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="checkbox" id="incCompilation"> compilations</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="checkbox" id="incAppearsOn"> appears-on (features/OSTs)</label>
+  </div>
+  </div>
+  <div id="albumScopeControls" style="display:none;">
+    <label style="margin-top:12px;">Album search</label>
+    <div class="status">Type the album/soundtrack name in the field above (e.g. "Hamilton"), not an artist name.</div>
+    <button class="secondary" id="searchAlbumBtn" type="button">🔍 Search albums</button>
+    <div class="status" id="albumSearchStatus"></div>
+    <div id="albumPicker" style="display:none;margin-top:10px;"></div>
+    <div class="status" id="selectedAlbumStatus"></div>
+  </div>
+  <div class="status">iTunes source ignores the release-type checkboxes above (Apple's API doesn't expose that distinction the same way) and won't fill in a Spotify track ID, so cards sourced this way won't get a "Play on Spotify" button — they get a 30-second preview link instead where Apple provides one.</div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="excludeInstrumental" checked> exclude instrumentals / acapellas / karaoke versions</label>
+  </div>
+  <div id="tvSourceControls" style="display:none;">
+    <button class="secondary" id="searchShowBtn" type="button">🔍 Search TVmaze shows</button>
+    <div class="status" id="showSearchStatus"></div>
+    <div id="showPicker" style="display:none;margin-top:10px;"></div>
+    <div class="status" id="selectedShowStatus"></div>
+    <div class="status">Uses TVmaze (free, no key needed) — pulls every season and episode title/art for the matched show.</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="includeSpecials"> include specials (season 0)</label>
+  </div>
+  <div id="movieSourceControls" style="display:none;">
+    <button class="secondary" id="searchActorBtn" type="button">🔍 Search TMDB for actor</button>
+    <div class="status" id="actorSearchStatus"></div>
+    <div id="actorPicker" style="display:none;margin-top:10px;"></div>
+    <div class="status" id="selectedActorStatus"></div>
+    <div class="status">Uses TMDB — pulls every movie the actor has been cast in (roles only, no crew credits). Requires the API key above. Each card will feature the movie poster with the character name as the member.</div>
+    <div class="status" style="color:#94a3b8;">✨ For actor decks you can skip step 2 (Character faces) entirely if you want — the mint step auto-pairs each movie with its character and uses the movie poster as the face bubble. Add portraits in step 2 later to replace posters with proper headshots per character.</div>
+    <label style="margin-top:12px;">Bucket movies by</label>
+    <div class="row" style="gap:16px;">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="movieAlbumMode" value="decade" checked> Decade (e.g. "2010s")</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="movieAlbumMode" value="year"> Individual year</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:none;"><input type="radio" name="movieAlbumMode" value="none"> All in one bucket</label>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="excludeUnreleased" checked> exclude unreleased/upcoming (no release date or in the future)</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:4px;"><input type="checkbox" id="excludeUncredited"> exclude uncredited / voice-only / "self" cameos</label>
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="dedupeTracks" checked> skip duplicate titles</label>
+  <button id="fetchBtn" disabled>Fetch full discography</button>
+  <div class="status" id="fetchStatus"></div>
+  <div id="tracksWrap" style="display:none;margin-top:12px;">
+    <div class="track-actions">
+      <span><a class="linkbtn" href="#" id="selectAll">select all</a> · <a class="linkbtn" href="#" id="selectNone">none</a></span>
+      <span id="trackCount"></span>
+    </div>
+    <!-- v2.7: top-rated bulk selector — pick the top N per album (music)
+         or top N per season (shows) by score, uncheck the rest. Score
+         comes from Spotify popularity (0-100) or TVmaze rating.average×10.
+         Groups automatically by the tracks' album/season field. -->
+    <div class="track-actions" id="topRatedRow" style="border-top:1px dashed #333;padding-top:8px;margin-top:6px;font-size:12px;color:#aaa;">
+      <span>
+        Auto-select top
+        <input type="number" id="topPerGroup" value="1" min="1" max="30" style="width:56px;padding:3px 6px;background:#111;border:1px solid #444;color:#fff;border-radius:4px;">
+        per <span id="topGroupLabel">album</span> by rating
+        <a class="linkbtn" href="#" id="applyTopRated">apply</a>
+      </span>
+      <span id="topRatedStatus" style="color:#666;font-size:11px;"></span>
+    </div>
+    <div class="tracks" id="trackList"></div>
+    <div class="row" style="margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;"><input type="radio" name="poolMode" value="random" checked> random member per pool card</label>
+      <label style="display:flex;align-items:center;gap:8px;margin:0;"><input type="radio" name="poolMode" value="all"> one pool card per checked member</label>
+    </div>
+    <div class="row">
+      <button id="mintBtn" disabled>Add selected to deck</button>
+      <button class="secondary" id="mintAllBtn" disabled type="button">Add entire bank (all tracks × all members)</button>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button class="secondary" id="refreshArtBtn" type="button">🔄 Refill missing art from TMDB (movies mode)</button>
+    </div>
+    <div class="status" id="mintStatus"></div>
+  </div>
+</div>
+
+<div class="panel" id="playlistPanel">
+  <h2>3b · Build from Spotify playlists</h2>
+  <div class="status" style="border-left:3px solid var(--accent2);padding-left:10px;">
+    <b>Spotify changed this in Feb/Mar 2026.</b> Playlist contents are now readable <b>only for playlists you own or collaborate on</b>, and only with a signed-in Spotify account. The Client ID/Secret in step 1 gets an app token, which is no longer enough — that is what the "Forbidden" error was. Editorial playlists (Today's Top Hits, Discover Weekly, RapCaviar) can no longer be read at all by any app.
+  </div>
+  <div class="status" style="font-size:11px;margin-top:8px;">
+    One-time setup: open your app at developer.spotify.com/dashboard → Edit Settings → add this exact Redirect URI → Save.<br>
+    <code id="redirectUriDisplay" style="color:var(--accent);word-break:break-all;">—</code>
+  </div>
+  <div class="row" style="margin-top:10px;">
+    <button id="spotifyLoginBtn" type="button">🔑 Sign in with Spotify</button>
+    <button class="secondary" id="myPlaylistsBtn" type="button" style="display:none;">📚 My playlists</button>
+    <button class="ghost" id="spotifyLogoutBtn" type="button" style="display:none;">Sign out</button>
+  </div>
+  <div class="status" id="spotifyAuthStatus"></div>
+  <div id="myPlaylistPicker" style="display:none;margin-top:10px;max-height:320px;overflow-y:auto;"></div>
+
+  <label style="margin-top:14px;">… or paste a link to one of your own playlists</label>
+  <input type="text" id="playlistUrl" placeholder="https://open.spotify.com/playlist/… (or spotify:playlist:…)" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;">
+  <div class="row">
+    <button class="secondary" id="fetchPlaylistBtn" type="button">↓ Load playlist</button>
+    <button class="ghost" id="clearTracksBtn" type="button">✕ Clear track list</button>
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="playlistUseAlbumName" checked> group cards by album name (uncheck to group by playlist name)</label>
+  <div class="status" id="playlistStatus"></div>
+  <div id="playlistStack" style="display:none;margin-top:10px;"></div>
+  <div id="playlistPreview" style="display:none;margin-top:12px;padding:12px;background:var(--ink2);border:1px solid var(--line);border-radius:10px;">
+    <div style="font-weight:700;font-size:13px;" id="playlistPreviewTitle"></div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:8px;" id="playlistPreviewMeta"></div>
+    <div class="track-actions">
+      <span><a class="linkbtn" href="#" id="playlistSelectAll">select all</a> · <a class="linkbtn" href="#" id="playlistSelectNone">none</a></span>
+      <span id="playlistPickCount"></span>
+    </div>
+    <div class="tracks" id="playlistTrackList"></div>
+    <div class="row">
+      <button id="confirmPlaylistBtn" type="button">+ Append to track list</button>
+      <button class="ghost" id="cancelPlaylistBtn" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>4 · Deck contents <span class="poolcount" id="poolCount">0 entries</span> <button class="secondary small" id="clearPoolBtn" type="button">Clear</button></h2>
+  <div class="status">This deck currently has no rendered card art yet — that's intentional. Art bakes on demand in the Card Collection app so this deck file stays small and export-friendly.</div>
+  <button class="secondary" id="previewBtn" type="button">Preview a random card</button>
+  <div id="previewWrap" style="display:none;"><div class="previewcard" id="previewCard"><img id="previewImg"></div></div>
+</div>
+
+<!-- face bubble crop editor -->
+<div class="modal-bg" id="editModalBg">
+  <div class="modal">
+    <button class="closebtn" id="editModalClose">×</button>
+    <h3>Edit face bubble</h3>
+    <div class="grademeta">Drag to reposition, use the slider to zoom.</div>
+    <div class="editStage" id="editStage">
+      <img id="editImg" alt="">
+    </div>
+    <input type="range" id="editZoom" min="100" max="400" value="150" style="width:100%;">
+    <div class="actionrow" style="margin-top:14px;">
+      <button class="secondary" id="editCancel" type="button">Cancel</button>
+      <button id="editSave" type="button">Save crop</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// CloudStore — RTDB-backed sync with Persona City's Firebase
+// ================================================================
+// Rewritten from Firestore + Auth to Realtime Database + no-auth so
+// decks published here appear instantly in Persona City's Card
+// Collection module (module 56). Persona City itself uses no auth —
+// identity is just the "publishedBy" name typed in below.
+//
+// Path convention (must match module 56's expectations):
+//   rooms/_global/publishedDecks/{deckId} = {
+//     deckId, deckName, publishedBy, publishedAt,
+//     trackCount, tracks: [{name, album, member}, ...]
+//   }
+//
+// v2.7.1: decks are stored under the reserved `_global` room code
+// so they're visible in every real room. The path piggybacks on
+// existing Firebase rules that permit rooms/*. Room-scoped scratch
+// data (drafts, undo state) still lives under rooms/{ROOM}/deckBuilderData/.
+//
+// The original CloudStore had subcollection semantics via path strings
+// like 'decks/{id}/members'. RTDB has no subcollections — everything
+// under a path is nested JSON. The new implementation maps the public
+// API (getAll, put, del, watch) onto RTDB references. Callers that
+// use paths beyond the top level (e.g. 'decks/{id}/members') still
+// work, they just read/write nested nodes.
+//
+// The Persona City Firebase config is baked in below. If you ever fork
+// this Deck Builder for a different Persona City project, replace the
+// firebaseConfig constant with that project's config.
+// ================================================================
+window.CloudStore = (function () {
+  const PC_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB8uzYD_redmmqxqW_skoG0Z-W9faC-UpA",
+    authDomain: "persona-city.firebaseapp.com",
+    databaseURL: "https://persona-city-default-rtdb.firebaseio.com",
+    projectId: "persona-city",
+    storageBucket: "persona-city.firebasestorage.app",
+    messagingSenderId: "4714447458",
+    appId: "1:4714447458:web:47cc7f9028c44284bdc73b",
+    measurementId: "G-YSQR6V8V7T"
+  };
+  let app = null, db = null;
+  let roomCode = 'FVHA';         // default, changeable via setRoom()
+  let publisherName = '';        // "publishedBy" — free-form label the user picks
+  let initialized = false;
+  const roomListeners = [];
+
+  // Init happens on demand and idempotently.
+  function init(config) {
+    if (initialized) return Promise.resolve(true);
+    try {
+      app = firebase.initializeApp(config || PC_FIREBASE_CONFIG);
+    } catch (e) {
+      // If already initialized elsewhere (unlikely here but defensive),
+      // firebase.app() returns the existing instance.
+      try { app = firebase.app(); } catch (_) { throw e; }
+    }
+    db = firebase.database();
+    initialized = true;
+    return Promise.resolve(true);
+  }
+
+  function setRoom(code) {
+    roomCode = String(code || 'FVHA').toUpperCase();
+    roomListeners.forEach(cb => { try { cb(roomCode); } catch(_){} });
+  }
+  function room() { return roomCode; }
+  function onRoomChange(cb) { roomListeners.push(cb); }
+  function setPublisher(name) { publisherName = String(name || '').trim(); }
+  function publisher() { return publisherName; }
+
+  // Translate a legacy Firestore-style path into an RTDB reference
+  // rooted at the current room. Handles both flat paths ('decks') and
+  // subpath forms ('decks/{deckId}/members').
+  //
+  // Path rewriting:
+  //   'decks'                    → rooms/_global/publishedDecks                    (SHARED, v2.7.1+)
+  //   'decks/{id}'               → rooms/_global/publishedDecks/{id}               (SHARED, v2.7.1+)
+  //   'decks/{id}/members'       → rooms/_global/publishedDecks/{id}/members       (SHARED, v2.7.1+)
+  //   'decks/{id}/pool'          → rooms/_global/publishedDecks/{id}/pool          (SHARED, v2.7.1+)
+  //   anything else              → rooms/{ROOM}/deckBuilderData/{path}
+  //
+  // v2.7.1: decks live at rooms/_global/publishedDecks — the reserved
+  // `_global` room code piggybacks on the existing rooms/* Firebase
+  // rules, so no security-rules change is needed. `deckBuilderData`
+  // (drafts, per-room scratch) stays scoped to the connected room.
+  function refFor(pathStr) {
+    const p = String(pathStr || '').trim();
+    let full;
+    if (p === 'decks') {
+      full = 'rooms/_global/publishedDecks';
+    } else if (p.startsWith('decks/')) {
+      full = 'rooms/_global/publishedDecks/' + p.slice(6);
+    } else {
+      full = 'rooms/' + roomCode + '/deckBuilderData/' + p;
+    }
+    return db.ref(full);
+  }
+
+  // Get all children under a path as an array of {id, ...}.
+  async function getAll(path) {
+    const snap = await refFor(path).once('value');
+    const val = snap.val() || {};
+    return Object.keys(val).map(k => Object.assign({ id: k }, val[k] || {}));
+  }
+
+  // Write a single object under `path/{obj.id}`. If no id, generate one.
+  async function put(path, obj) {
+    if (!obj) throw new Error('put(): missing object');
+    if (!obj.id) obj.id = 'auto_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    await refFor(path).child(obj.id).set(obj);
+    return obj;
+  }
+
+  async function del(path, id) {
+    await refFor(path).child(id).remove();
+  }
+
+  // Wipe an entire collection — used by publish flow to clear previous
+  // deck content before re-publishing under the same id.
+  async function clearCollection(path) {
+    await refFor(path).remove();
+  }
+
+  // _meta compatibility for legacy callers. RTDB has no doc concept —
+  // we store meta as regular fields under a _meta child.
+  async function getMeta(path, key, fallback) {
+    const snap = await refFor(path).child('_meta').child(key).once('value');
+    const v = snap.val();
+    return v === null || v === undefined ? fallback : v;
+  }
+  async function setMeta(path, key, value) {
+    const update = {};
+    update[key] = value;
+    await refFor(path).child('_meta').update(update);
+  }
+
+  // Live listener — fires initial value + updates.
+  function watch(path, callback) {
+    const ref = refFor(path);
+    const handler = snap => {
+      const val = snap.val() || {};
+      callback(Object.keys(val).map(k => Object.assign({ id: k }, val[k] || {})));
+    };
+    ref.on('value', handler);
+    return () => ref.off('value', handler);
+  }
+
+  function watchDoc(path, id, callback) {
+    const ref = refFor(path).child(id);
+    const handler = snap => {
+      const val = snap.val();
+      callback(val === null || val === undefined ? null : Object.assign({ id: id }, val));
+    };
+    ref.on('value', handler);
+    return () => ref.off('value', handler);
+  }
+
+  // Legacy auth shims — kept so existing UI code doesn't error out.
+  // Persona City has no auth, so these all no-op or return safe values.
+  function uid() { return publisherName || 'anonymous'; }
+  function userLabel() { return publisherName || 'anonymous publisher'; }
+  function onAuthChange(cb) { /* fires once via updateCloudUI on room set */ }
+  async function signInWithGoogle() { throw new Error('Persona City does not use Firebase Auth — set your publisher name instead.'); }
+  async function signInAnonymously() { return { uid: uid() }; }
+  async function signOut() { /* no-op */ }
+
+  return {
+    init, setRoom, room, onRoomChange, setPublisher, publisher,
+    getAll, put, del, clearCollection, getMeta, setMeta, watch, watchDoc,
+    uid, userLabel, onAuthChange, signInWithGoogle, signInAnonymously, signOut,
+    isReady: () => initialized,
+    // v2.7.1: escape hatch for callers (deck-builder migration) that
+    // need to touch arbitrary Firebase paths outside the decks/…
+    // rewriting scheme. Returns the raw firebase.database() instance.
+    _db: () => db
+  };
+})();
+
+const $ = id => document.getElementById(id);
+
+// ---------------- IndexedDB layer ----------------
+let db;
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('DeckBuilderDB', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('members')) d.createObjectStore('members', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('pool')) d.createObjectStore('pool', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', {keyPath:'key'});
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+function idbAll(store){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store,'readonly').objectStore(store).getAll();
+    tx.onsuccess = () => resolve(tx.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function idbPut(store, obj){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store,'readwrite').objectStore(store).put(obj);
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function idbClear(store){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store,'readwrite').objectStore(store).clear();
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getMeta(key, fallback){
+  const tx = db.transaction('meta','readonly').objectStore('meta');
+  return new Promise(resolve => {
+    const req = tx.get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.value : fallback);
+    req.onerror = () => resolve(fallback);
+  });
+}
+async function setMeta(key, value){ await idbPut('meta', {key, value}); }
+
+// ---------------- app state ----------------
+let token = null;
+let tracksData = [];
+let members = [];
+let pool = [];
+let deckId = null;
+function updateDeckIdStatus(){
+  $('currentDeckIdStatus').textContent = deckId
+    ? 'Editing deck id: ' + deckId + ' — publishing updates this exact deck. Click "New deck" if you meant to start something different.'
+    : 'No deck loaded yet — publishing will create a brand new deck id.';
+}
+let pasteTargetId = null;
+let cloudActive = false;
+
+// Auto-connect on load. No config UI, no auth. Persona City's Firebase
+// project is baked into CloudStore. The user just picks a room code
+// and a publisher name, and any deck they publish appears in Persona
+// City's Card Collection module immediately in EVERY room (v2.7+).
+function updateCloudUI(){
+  const ready = CloudStore.isReady();
+  const publisher = CloudStore.publisher();
+  const hasPublisher = !!publisher;
+  $('publishDeckBtn').style.display = (ready && hasPublisher) ? 'inline-block' : 'none';
+  $('loadFromCloudBtn').style.display = ready ? 'inline-block' : 'none';
+  if(!ready) $('cloudStatus').textContent = 'Connecting to Persona City...';
+  else if(!hasPublisher) $('cloudStatus').textContent = '⚠ Set a Publisher name so your published decks are attributed.';
+  else $('cloudStatus').textContent = '✓ Connected — publisher "' + publisher + '". Publishing writes to rooms/_global/publishedDecks/{deckId} — visible in every room.';
+}
+
+async function autoConnect(){
+  try {
+    await CloudStore.init();
+    cloudActive = true;
+    // Restore saved room + publisher from localStorage if set
+    const savedRoom = localStorage.getItem('cf_room_code');
+    const savedPublisher = localStorage.getItem('cf_publisher_name');
+    if(savedRoom) $('roomCodeInput').value = savedRoom;
+    if(savedPublisher) $('publisherNameInput').value = savedPublisher;
+    CloudStore.setRoom($('roomCodeInput').value || 'FVHA');
+    CloudStore.setPublisher($('publisherNameInput').value || '');
+    updateCloudUI();
+    // v2.7.1: on connect, auto-migrate the current room's legacy decks
+    // into the shared pool so Load from Cloud finds them immediately.
+    setTimeout(() => runLegacyMigration(true), 800);
+  } catch (e) {
+    $('cloudStatus').textContent = 'Auto-connect failed: ' + e.message + ' (check network / Firebase SDK)';
+  }
+}
+
+$('applyRoomBtn').addEventListener('click', () => {
+  const room = ($('roomCodeInput').value || 'FVHA').toUpperCase();
+  const publisher = ($('publisherNameInput').value || '').trim();
+  $('roomCodeInput').value = room;
+  CloudStore.setRoom(room);
+  CloudStore.setPublisher(publisher);
+  localStorage.setItem('cf_room_code', room);
+  localStorage.setItem('cf_publisher_name', publisher);
+  updateCloudUI();
+  // v2.7.1: after Apply, auto-migrate this room's legacy decks so
+  // Load from Cloud shows them in the shared pool right away.
+  setTimeout(() => runLegacyMigration(true), 300);
+});
+// Also react to typing so the status refreshes as they enter the publisher name
+$('publisherNameInput').addEventListener('input', () => {
+  CloudStore.setPublisher($('publisherNameInput').value.trim());
+  updateCloudUI();
+});
+$('roomCodeInput').addEventListener('input', () => {
+  const room = $('roomCodeInput').value.toUpperCase();
+  CloudStore.setRoom(room || 'FVHA');
+  updateCloudUI();
+});
+
+// v2.7.1: Migrate this-room legacy decks (rooms/{room}/publishedDecks)
+// into the shared pool (rooms/_global/publishedDecks). Idempotent —
+// existing shared-pool entries win, no duplicates. `silent` skips the
+// visible "nothing to migrate" toast for auto-triggered runs.
+async function runLegacyMigration(silent) {
+  const statusEl = $('migrateStatus');
+  const setStatus = msg => { if (statusEl) statusEl.textContent = msg; };
+  if (!CloudStore.isReady()) { if (!silent) setStatus('Not connected yet.'); return; }
+  const room = CloudStore.room();
+  if (!room || room === '_global') { if (!silent) setStatus('Enter a real room code first.'); return; }
+  setStatus('Reading legacy decks from ' + room + '…');
+  try {
+    const legacySnap = await CloudStore._db().ref('rooms/' + room + '/publishedDecks').once('value');
+    const legacy = legacySnap.val() || {};
+    const legacyIds = Object.keys(legacy);
+    if (legacyIds.length === 0) {
+      setStatus(silent ? '' : 'No legacy decks in ' + room + '.');
+      return;
+    }
+    // Read existing shared pool to skip duplicates
+    const sharedSnap = await CloudStore._db().ref('rooms/_global/publishedDecks').once('value');
+    const shared = sharedSnap.val() || {};
+    let copied = 0, skipped = 0;
+    for (const k of legacyIds) {
+      const deck = legacy[k];
+      if (!deck || !deck.tracks || deck.tracks.length === 0) { skipped++; continue; }
+      const deckId = deck.deckId || k;
+      if (shared[deckId]) { skipped++; continue; }
+      try {
+        await CloudStore._db().ref('rooms/_global/publishedDecks/' + deckId).set(deck);
+        copied++;
+      } catch (e) {
+        console.warn('[migrate] deck ' + deckId + ' failed', e);
+      }
+    }
+    if (copied > 0) {
+      setStatus('✓ Migrated ' + copied + ' deck' + (copied === 1 ? '' : 's') +
+        ' from ' + room + ' → shared pool.' +
+        (skipped > 0 ? ' (' + skipped + ' already there or empty)' : ''));
+    } else if (!silent) {
+      setStatus('All ' + legacyIds.length + ' decks in ' + room + ' are already in the shared pool.');
+    } else {
+      setStatus('');
+    }
+  } catch (err) {
+    setStatus('Migration failed: ' + (err.message || err));
+    console.warn('[migrate] failed', err);
+  }
+}
+$('migrateLegacyBtn').addEventListener('click', () => runLegacyMigration(false));
+
+// Import a deck from a local JSON file. Format matches the exportDeck
+// output — {kind:'cardforge-deck', deckId, artistName, members, pool}.
+// Loads the members/pool arrays into the current builder session,
+// exactly like the cloud-load flow does.
+$('importFromJsonBtn').addEventListener('click', () => $('importFileInput').click());
+$('importFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    if(payload.kind !== 'cardforge-deck') {
+      alert('That file doesn\'t look like a cardforge deck (missing kind marker). Nothing loaded.');
+      return;
+    }
+    if(!confirm('Load "' + (payload.artistName || 'untitled') + '" from JSON? This replaces the current members and pool in the builder.')) return;
+    // Reuse the same load-into-builder path the cloud loader uses
+    deckId = payload.deckId || null;
+    $('deckName').value = payload.artistName || '';
+    members = Array.isArray(payload.members) ? payload.members : [];
+    pool = Array.isArray(payload.pool) ? payload.pool : [];
+
+    // v2.7.3.4: normalize member shape. Other cardforge builders (e.g. a
+    // sister app maintained in a different repo) export member.imgs as
+    // [{id, src}] — objects with metadata. This builder expects plain
+    // URL strings: ['url1', 'url2']. Set imgs[0] to a string; anything
+    // else renders as [object Object] in <img src=...> → broken image.
+    // Also flatten a lone `img` field into imgs[0].
+    for (const m of members) {
+      if (!Array.isArray(m.imgs)) m.imgs = [];
+      m.imgs = m.imgs.map(entry => {
+        if (typeof entry === 'string') return entry;
+        if (entry && typeof entry === 'object') {
+          if (typeof entry.src === 'string') return entry.src;
+          if (typeof entry.url === 'string') return entry.url;
+          if (typeof entry.dataUrl === 'string') return entry.dataUrl;
+        }
+        return null;
+      }).filter(Boolean);
+      if (m.imgs.length === 0 && typeof m.img === 'string' && m.img) {
+        m.imgs = [m.img];
+      }
+      if (m.imgs.length > 0) m.img = m.imgs[0]; // legacy field synced
+    }
+    // Also normalize pool entry field names — some older/sibling exports
+    // use `summary` instead of `description` for the plot text.
+    for (const p of pool) {
+      if (!p.description && typeof p.summary === 'string' && p.summary) {
+        p.description = p.summary;
+      }
+    }
+
+    // v2.7.3.5: detect this as an actor/character deck when the pool
+    // has multiple distinct memberNames but the members grid has only
+    // one (or few) entries. That's the classic actor deck signal.
+    // Also detect it if any pool entry has a TMDB id. Unlike the v2.7.3.3
+    // approach, we do NOT auto-create a placeholder member per
+    // character — the actor deck workflow is one-face-for-all-characters:
+    // MBJ's face bubble on every card, character name as the label.
+    // At publish time, memberPhotos gets an entry per unique character
+    // name that falls back to the actor's face. If the user later wants
+    // a specific character portrait, they add a member with that
+    // character's name and its own photo — that overrides the fallback.
+    const uniqueCharNames = new Set(pool.map(p => (p.memberName || '').trim()).filter(Boolean));
+    const hasTmdbIds = pool.some(p =>
+      String(p.spotifyTrackId || '').startsWith('tmdb_') ||
+      String(p.id || '').startsWith('tmdb_')
+    );
+    const looksLikeActorDeck = hasTmdbIds || (uniqueCharNames.size > members.length + 2);
+    if (looksLikeActorDeck) {
+      const movieRadio = document.querySelector('input[name=contentType][value=movie]');
+      if (movieRadio && !movieRadio.checked) {
+        movieRadio.checked = true;
+        movieRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // Seed _fallbackFace on every pool entry from its trackImageUrl
+      // so an emergency publish before the user re-fetches still gives
+      // something (the movie poster) as a per-card fallback.
+      for (const p of pool) {
+        if (!p._fallbackFace && p.trackImageUrl) p._fallbackFace = p.trackImageUrl;
+      }
+    }
+    const autoAddedMembers = 0;   // v2.7.3.5: intentionally no auto-add
+    // Persist the reshaped members + pool so a reload doesn't lose them
+    await idbClear('members'); await idbClear('pool');
+    for (const m of members) await idbPut('members', m);
+    for (const p of pool) await idbPut('pool', p);
+
+    renderMembers();
+    renderPoolCount();
+    updateDeckIdStatus();
+    let msg = 'Loaded "' + (payload.artistName || 'untitled') + '" from JSON';
+    if (looksLikeActorDeck) msg += ' [detected: actor/character deck]';
+    msg += ' — ' + members.length + ' members (' + autoAddedMembers + ' auto-added), ' + pool.length + ' pool entries.';
+    const missingArt = pool.filter(p => !p.trackImageUrl).length;
+    if (missingArt > 0) msg += ' 📸 ' + missingArt + ' entries missing poster URLs — click "🔄 Refill missing art from TMDB" or re-fetch the filmography (step 3) then re-mint.';
+    else msg += ' All poster URLs present.';
+    $('deckStatus').textContent = msg;
+    console.log('[IMPORT v2.7.3.4]', {
+      totalMembers: members.length,
+      autoAddedMembers,
+      poolSize: pool.length,
+      missingArt,
+      looksLikeActorDeck,
+      firstFewMemberNames: members.slice(0, 6).map(m => m.name),
+      firstPoolEntry: pool[0]
+    });
+  } catch(err) {
+    alert('Import failed: ' + err.message);
+  } finally {
+    e.target.value = '';   // let the same file be re-selected later
+  }
+});
+
+// "Import from Firebase" — mirrors the existing cloud-browse flow.
+// The actual load logic lives in loadFromCloudBtn's handler further down;
+// we just trigger it here from the new UI position.
+$('importFromFbBtn').addEventListener('click', () => {
+  const btn = $('loadFromCloudBtn');
+  if(btn) btn.click();
+  else $('cloudStatus').textContent = 'Load-from-cloud button not found — check console.';
+});
+
+function slug(s){ return (s||'deck').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// ---------------- credentials ----------------
+function loadCreds(){
+  const saved = JSON.parse(localStorage.getItem('cf_spotify_creds') || 'null');
+  if(saved){ $('clientId').value = saved.id || ''; $('clientSecret').value = saved.secret || ''; }
+}
+$('connectBtn').addEventListener('click', async () => {
+  const id = $('clientId').value.trim(), secret = $('clientSecret').value.trim();
+  if(!id || !secret){ $('credStatus').textContent = 'Enter both fields.'; return; }
+  $('credStatus').textContent = 'Connecting...';
+  try{
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','Authorization':'Basic ' + btoa(id+':'+secret)},
+      body:'grant_type=client_credentials'
+    });
+    const data = await resp.json().catch(() => null);
+    if(!resp.ok){
+      const reason = data ? (data.error_description || data.error) : ('HTTP ' + resp.status);
+      throw new Error(reason);
+    }
+    token = data.access_token;
+    localStorage.setItem('cf_spotify_creds', JSON.stringify({id, secret}));
+    $('credStatus').textContent = 'Connected. Token expires in ' + Math.round(data.expires_in/60) + ' min.';
+    $('fetchBtn').disabled = false;
+  }catch(e){ $('credStatus').textContent = 'Failed: ' + e.message + ' — double-check Client ID/Secret were copied fully, with no extra spaces.'; }
+});
+$('forgetCredsBtn').addEventListener('click', () => {
+  localStorage.removeItem('cf_spotify_creds');
+  $('clientId').value=''; $('clientSecret').value='';
+  $('credStatus').textContent = 'Credentials cleared.';
+});
+
+// ---------------- members ----------------
+function getMemberImgs(m){
+  if(m.imgs && m.imgs.length) return m.imgs;
+  if(m.img) return [m.img];
+  return [];
+}
+function renderMembers(){
+  const grid = $('memberGrid');
+  grid.innerHTML = '';
+  members.forEach(m => {
+    const imgs = getMemberImgs(m);
+    const slot = document.createElement('div');
+    slot.className = 'member-slot';
+    const photoStrip = imgs.map((src,i) => `
+      <div class="photoThumb" data-id="${m.id}" data-i="${i}">
+        <img src="${src}">
+        <button class="photoDel" data-id="${m.id}" data-i="${i}" type="button" title="Remove this photo">✕</button>
+      </div>
+    `).join('');
+    slot.innerHTML = `
+      ${imgs.length ? `<img src="${imgs[0]}" class="face" data-id="${m.id}" title="Click to edit crop">` : `<div class="ph" data-id="${m.id}">no face</div>`}
+      <div class="photoCount">${imgs.length} photo${imgs.length===1?'':'s'}${imgs.length>1?' — randomized per card':''}</div>
+      <input type="text" data-id="${m.id}" class="mname" value="${escapeHtml(m.name)}">
+      <input type="file" accept="image/*" data-id="${m.id}" class="mfile" hidden>
+      <div class="mbtnrow">
+        <button class="secondary mUpload" data-id="${m.id}" type="button">+ Upload</button>
+        <button class="secondary mPaste" data-id="${m.id}" type="button">+ Paste</button>
+      </div>
+      <button class="ghost mSearch" data-id="${m.id}" type="button" style="width:100%;margin-top:6px;">+ Search Spotify for face</button>
+      <button class="ghost mWiki" data-id="${m.id}" type="button" style="width:100%;margin-top:6px;">+ Search Wikipedia for face</button>
+      <div class="searchResults" id="sr_${m.id}" style="display:none;"></div>
+      ${imgs.length ? `<div class="photoStrip">${photoStrip}</div>` : ''}
+      <label class="chk"><input type="checkbox" class="minclude" data-id="${m.id}" ${m.include!==false?'checked':''}> include</label>
+    `;
+    grid.appendChild(slot);
+  });
+  grid.querySelectorAll('.mname').forEach(inp => inp.addEventListener('change', async e => {
+    const m = members.find(x=>x.id===e.target.dataset.id); m.name = e.target.value; await idbPut('members', m);
+  }));
+  grid.querySelectorAll('.minclude').forEach(inp => inp.addEventListener('change', async e => {
+    const m = members.find(x=>x.id===e.target.dataset.id); m.include = e.target.checked; await idbPut('members', m);
+  }));
+  grid.querySelectorAll('.mfile').forEach(inp => inp.addEventListener('change', e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => { await addMemberPhoto(e.target.dataset.id, reader.result); };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }));
+  grid.querySelectorAll('.mUpload').forEach(btn => btn.addEventListener('click', e => {
+    grid.querySelector('.mfile[data-id="'+e.target.dataset.id+'"]').click();
+  }));
+  grid.querySelectorAll('.mPaste').forEach(btn => btn.addEventListener('click', e => {
+    pasteTargetId = e.target.dataset.id;
+    const m = members.find(x=>x.id===pasteTargetId);
+    $('memberStatus').textContent = 'Paste target: ' + m.name + ' — press Ctrl+V (or long-press → Paste on mobile) now. New photo adds to their pool.';
+  }));
+  grid.querySelectorAll('.face, .ph').forEach(el => el.addEventListener('click', e => {
+    const id = e.target.dataset.id;
+    const m = members.find(x=>x.id===id);
+    const imgs = getMemberImgs(m);
+    if(imgs.length) openEditModal(id, 0); else grid.querySelector('.mfile[data-id="'+id+'"]').click();
+  }));
+  grid.querySelectorAll('.photoThumb img').forEach(img => img.addEventListener('click', e => {
+    const wrap = e.target.closest('.photoThumb');
+    openEditModal(wrap.dataset.id, parseInt(wrap.dataset.i));
+  }));
+  grid.querySelectorAll('.photoDel').forEach(btn => btn.addEventListener('click', async e => {
+    e.stopPropagation();
+    const m = members.find(x=>x.id===e.target.dataset.id);
+    const i = parseInt(e.target.dataset.i);
+    const imgs = getMemberImgs(m);
+    imgs.splice(i,1);
+    m.imgs = imgs; delete m.img;
+    await idbPut('members', m);
+    renderMembers();
+  }));
+  grid.querySelectorAll('.mSearch').forEach(btn => btn.addEventListener('click', e => searchMemberFace(e.target.dataset.id)));
+  grid.querySelectorAll('.mWiki').forEach(btn => btn.addEventListener('click', e => searchMemberFaceWikipedia(e.target.dataset.id)));
+}
+async function addMemberPhoto(memberId, dataUrl){
+  const m = members.find(x=>x.id===memberId);
+  if(!m) return;
+  const imgs = getMemberImgs(m);
+  imgs.push(dataUrl);
+  m.imgs = imgs; delete m.img;
+  await idbPut('members', m);
+  renderMembers();
+  openEditModal(memberId, imgs.length-1);
+}
+document.addEventListener('paste', async (e) => {
+  if(!pasteTargetId) return;
+  const items = (e.clipboardData || window.clipboardData) ? (e.clipboardData || window.clipboardData).items : [];
+  for(const item of items){
+    if(item.type.indexOf('image') === 0){
+      e.preventDefault();
+      const blob = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = async () => {
+        $('memberStatus').textContent = 'Pasted a new photo — adding to pool...';
+        await addMemberPhoto(pasteTargetId, reader.result);
+        pasteTargetId = null;
+      };
+      reader.readAsDataURL(blob);
+      break;
+    }
+  }
+});
+async function searchMemberFace(memberId){
+  const m = members.find(x=>x.id===memberId);
+  if(!m) return;
+  if(!token){ alert('Connect Spotify in step 1 first — member face search uses the same API.'); return; }
+  const q = m.name.trim();
+  if(!q) return;
+  const box = document.getElementById('sr_'+memberId);
+  box.style.display = 'flex';
+  box.innerHTML = '<div class="empty" style="padding:6px;">Searching...</div>';
+  try{
+    const res = await spotifyGet('https://api.spotify.com/v1/search?q=' + encodeURIComponent(q) + '&type=artist&limit=5', msg => box.innerHTML = '<div class="empty" style="padding:6px;">' + msg + '</div>');
+    const items = (res.artists ? res.artists.items : []).filter(a => a.images && a.images.length);
+    if(items.length === 0){ box.innerHTML = '<div class="empty" style="padding:6px;">No Spotify artist photos found for that name — try uploading or pasting instead.</div>'; return; }
+    box.innerHTML = '';
+    items.forEach(a => {
+      const thumb = document.createElement('img');
+      thumb.src = a.images[a.images.length-1].url;
+      thumb.title = a.name;
+      thumb.addEventListener('click', async () => {
+        box.innerHTML = '<div class="empty" style="padding:6px;">Loading full image...</div>';
+        try{
+          const dataUrl = await urlToDataURL(a.images[0].url);
+          box.style.display = 'none';
+          await addMemberPhoto(memberId, dataUrl);
+        }catch(err){ box.innerHTML = '<div class="empty" style="padding:6px;">Failed to load image: ' + err.message + '</div>'; }
+      });
+      box.appendChild(thumb);
+    });
+  }catch(e){ box.innerHTML = '<div class="empty" style="padding:6px;">Search failed: ' + e.message + '</div>'; }
+}
+
+async function searchMemberFaceWikipedia(memberId){
+  const m = members.find(x=>x.id===memberId);
+  if(!m) return;
+  const q = m.name.trim();
+  if(!q) return;
+  const deckArtist = $('deckName').value.trim() || $('artistName').value.trim() || '';
+  const box = document.getElementById('sr_'+memberId);
+  box.style.display = 'flex';
+  box.innerHTML = '<div class="empty" style="padding:6px;">Searching Wikipedia...</div>';
+  try{
+    const searchQuery = deckArtist ? (q + ' ' + deckArtist) : q;
+    const searchUrl = 'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=' + encodeURIComponent(searchQuery) + '&format=json&origin=*&srlimit=5';
+    const searchRes = await fetch(searchUrl).then(r => r.json());
+    const titles = (searchRes.query ? searchRes.query.search : []).map(r => r.title);
+    if(titles.length === 0){ box.innerHTML = '<div class="empty" style="padding:6px;">No Wikipedia pages found for that name.</div>'; return; }
+
+    const imgUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles=' + encodeURIComponent(titles.join('|')) + '&prop=pageimages&piprop=thumbnail&pithumbsize=400&format=json&origin=*';
+    const imgRes = await fetch(imgUrl).then(r => r.json());
+    const pages = imgRes.query ? Object.values(imgRes.query.pages) : [];
+    const withImages = pages.filter(p => p.thumbnail && p.thumbnail.source);
+
+    if(withImages.length === 0){ box.innerHTML = '<div class="empty" style="padding:6px;">Found pages but none had a usable photo — try uploading or pasting instead.</div>'; return; }
+    box.innerHTML = '';
+    withImages.forEach(p => {
+      const thumb = document.createElement('img');
+      thumb.src = p.thumbnail.source;
+      thumb.title = p.title;
+      thumb.addEventListener('click', async () => {
+        box.innerHTML = '<div class="empty" style="padding:6px;">Loading full image...</div>';
+        try{
+          const dataUrl = await urlToDataURL(p.thumbnail.source);
+          box.style.display = 'none';
+          await addMemberPhoto(memberId, dataUrl);
+        }catch(err){ box.innerHTML = '<div class="empty" style="padding:6px;">Failed to load image: ' + err.message + '</div>'; }
+      });
+      box.appendChild(thumb);
+    });
+  }catch(e){ box.innerHTML = '<div class="empty" style="padding:6px;">Search failed: ' + e.message + '</div>'; }
+}
+$('addMemberBtn').addEventListener('click', async () => {
+  const m = {id:'m_'+Date.now()+Math.random().toString(36).slice(2,6), name:'Member '+(members.length+1), img:null, include:true};
+  members.push(m);
+  await idbPut('members', m);
+  renderMembers();
+});
+
+// ---------------- image helpers ----------------
+// v2.7.3.2: CORS-resilient loader. TMDB (and many CDNs) refuse the
+// preflight for `Origin: null`, which is what browsers send when the
+// page is loaded via file://. That fails the `crossOrigin='anonymous'`
+// path entirely, which breaks bakeArt previews AND urlToDataURL. When
+// the strict load fails, retry without crossOrigin so the image at
+// least renders on-screen. Canvas draws using the CORS-less version
+// will taint the canvas (toDataURL will throw a SecurityError), so we
+// mark those images so the caller can decide how to handle it.
+function loadImg(src, opts){
+  opts = opts || {};
+  return new Promise((resolve, reject) => {
+    const strict = new Image();
+    strict.crossOrigin = 'anonymous';
+    let settled = false;
+    strict.onload = () => { if (!settled) { settled = true; resolve(strict); } };
+    strict.onerror = () => {
+      if (settled) return;
+      // Fallback: retry without crossOrigin. Image will load but the
+      // canvas taint prevents toDataURL. That's fine for CSS-only display.
+      const relaxed = new Image();
+      relaxed.onload = () => {
+        relaxed._cors_tainted = true;
+        settled = true;
+        resolve(relaxed);
+      };
+      relaxed.onerror = () => { settled = true; reject(new Error('image load failed for ' + src)); };
+      relaxed.src = src;
+    };
+    strict.src = src;
+  });
+}
+function imageElToDataURL(imgEl, maxSize){
+  maxSize = maxSize || 640;
+  let w = imgEl.naturalWidth || imgEl.width, h = imgEl.naturalHeight || imgEl.height;
+  if(Math.max(w,h) > maxSize){ const s = maxSize/Math.max(w,h); w = Math.round(w*s); h = Math.round(h*s); }
+  const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+  // If the image was loaded without CORS (fallback path), the canvas is
+  // tainted and toDataURL will throw. Detect that early and give a
+  // useful error rather than a cryptic SecurityError.
+  if (imgEl._cors_tainted) {
+    throw new Error(
+      'This CDN (image server) refused CORS for file:// origin, so the ' +
+      'canvas that was drawn is "tainted" and can\'t be exported. ' +
+      'This only affects deck-builder previews and portrait cropping — ' +
+      'the published deck still gets the raw URL, and Persona City will ' +
+      'render posters/faces via CSS backgrounds which don\'t need CORS.'
+    );
+  }
+  return canvas.toDataURL('image/png');
+}
+async function urlToDataURL(url){ const img = await loadImg(url); return imageElToDataURL(img); }
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = text.split(' '); let line=''; const lines=[];
+  for(const w of words){
+    const test = line ? line+' '+w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line=w; } else line=test;
+  }
+  lines.push(line);
+  const startY = y - (lines.length-1)*lineHeight;
+  lines.forEach((l,i) => ctx.fillText(l, x, startY + i*lineHeight));
+}
+let fontReady = null;
+async function ensureCardFont(){
+  if(fontReady) return fontReady;
+  fontReady = (async () => {
+    try{
+      await Promise.race([
+        Promise.all([
+          document.fonts.load('900 25px Poppins'),
+          document.fonts.load('800 17px Poppins'),
+          document.fonts.load('700 15px Poppins')
+        ]),
+        new Promise(r => setTimeout(r, 1500)) // don't let a slow/offline font block card baking forever
+      ]);
+    }catch(e){}
+  })();
+  return fontReady;
+}
+function memberPhoto(member){
+  if(!member) return null;
+  const pool = (member.imgs && member.imgs.length) ? member.imgs : (member.img ? [member.img] : []);
+  if(pool.length === 0) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function drawSparkle(ctx, x, y, size, color){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0,-size); ctx.lineTo(size*0.22,-size*0.22); ctx.lineTo(size,0);
+  ctx.lineTo(size*0.22,size*0.22); ctx.lineTo(0,size); ctx.lineTo(-size*0.22,size*0.22);
+  ctx.lineTo(-size,0); ctx.lineTo(-size*0.22,-size*0.22);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+async function bakeArt(track, member, grade){
+  await ensureCardFont();
+  const W=340,H=476;
+  const canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
+  const ctx = canvas.getContext('2d');
+  const gColor = (grade && GRADE_COLOR[grade]) ? GRADE_COLOR[grade] : '#5eead4';
+  const GV = {
+    C:{glowMult:0.85, ringAlpha:'40', titleSize:22, nameSize:16,   sparkles:0, shadowBlur:3},
+    B:{glowMult:1.0,  ringAlpha:'55', titleSize:23, nameSize:16.5, sparkles:0, shadowBlur:5},
+    A:{glowMult:1.2,  ringAlpha:'70', titleSize:24, nameSize:17.5, sparkles:1, shadowBlur:8},
+    S:{glowMult:1.5,  ringAlpha:'95', titleSize:27, nameSize:18.5, sparkles:2, shadowBlur:16},
+    R:{glowMult:1.85, ringAlpha:'ee', titleSize:30, nameSize:20,   sparkles:4, shadowBlur:24}
+  };
+  const gv = GV[grade] || GV.C;
+  const isTopTier = grade === 'S' || grade === 'R';
+
+  ctx.fillStyle = '#111'; ctx.fillRect(0,0,W,H);
+  if(track.imageUrl){
+    try{
+      const bg = await loadImg(track.imageUrl);
+      const scale = Math.max(W/bg.width, H/bg.height);
+      const sw=W/scale, sh=H/scale, sx=(bg.width-sw)/2, sy=(bg.height-sh)/2;
+      ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, W, H);
+    }catch(e){}
+  }
+  ctx.fillStyle = 'rgba(10,10,20,0.32)'; ctx.fillRect(0,0,W,H);
+  const topGrad = ctx.createLinearGradient(0,0,0,H*0.2);
+  topGrad.addColorStop(0,'rgba(0,0,0,0.5)'); topGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = topGrad; ctx.fillRect(0,0,W,H*0.2);
+
+  // title plate — deliberately thin now (~1/8 of card height), just enough for legibility,
+  // so the title sits low and close to the edge instead of eating almost half the card
+  const plateTop = H*0.875;
+  // light assist gradient above the thin plate, so a 2-line title still has some contrast
+  // protection even though the strong opaque plate itself is now just the bottom ~1/8
+  const assistGrad = ctx.createLinearGradient(0,H*0.7,0,plateTop);
+  assistGrad.addColorStop(0,'rgba(8,8,16,0)'); assistGrad.addColorStop(1,'rgba(8,8,16,0.55)');
+  ctx.fillStyle = assistGrad; ctx.fillRect(0,H*0.7,W,plateTop-H*0.7);
+  const plateGrad = ctx.createLinearGradient(0,plateTop,0,H);
+  plateGrad.addColorStop(0,'rgba(8,8,16,0)'); plateGrad.addColorStop(0.35,'rgba(8,8,16,0.9)'); plateGrad.addColorStop(1,'rgba(8,8,16,0.98)');
+  ctx.fillStyle = plateGrad; ctx.fillRect(0,plateTop,W,H-plateTop);
+
+  // member portrait — large, centered hero shot, glow/sparkle intensity scales continuously with grade
+  const photo = memberPhoto(member);
+  const cx = W/2, cy = H*0.29, r = 88;
+  if(photo){
+    try{
+      const face = await loadImg(photo);
+      const glowR = r * (1.15 + gv.glowMult*0.3);
+      const glow = ctx.createRadialGradient(cx,cy,r*0.8,cx,cy,glowR);
+      glow.addColorStop(0, gColor + gv.ringAlpha);
+      glow.addColorStop(1, gColor + '00');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx,cy,glowR,0,Math.PI*2); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.closePath(); ctx.clip();
+      const scale = Math.max((r*2)/face.width,(r*2)/face.height);
+      const fw=face.width*scale, fh=face.height*scale;
+      ctx.drawImage(face, cx-fw/2, cy-fh/2, fw, fh);
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.lineWidth=5; ctx.strokeStyle='rgba(255,255,255,0.95)'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,r+4,0,Math.PI*2); ctx.lineWidth=2+gv.glowMult; ctx.strokeStyle=gColor; ctx.stroke();
+      const sparklePositions = [
+        [cx+r*0.78, cy-r*0.78, 12], [cx-r*0.82, cy+r*0.7, 8],
+        [cx+r*0.6, cy+r*0.85, 9], [cx-r*0.6, cy-r*0.9, 7]
+      ];
+      for(let i=0;i<gv.sparkles;i++){
+        const [sx2,sy2,sz] = sparklePositions[i];
+        drawSparkle(ctx, sx2, sy2, sz, i%2===0 ? gColor : '#ffffff');
+      }
+    }catch(e){}
+  }
+
+  // member name — bold display font, subtle gradient + stroke for a premium photocard feel
+  if(member && member.name){
+    ctx.textAlign='center';
+    ctx.font='800 ' + gv.nameSize + 'px Poppins, Segoe UI, sans-serif';
+    const nameY = cy + r + 32;
+    const nameGrad = ctx.createLinearGradient(W/2-70,0,W/2+70,0);
+    nameGrad.addColorStop(0,'#ffffff'); nameGrad.addColorStop(1,gColor);
+    ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=8;
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(8,8,16,0.8)';
+    ctx.strokeText(member.name.toUpperCase(), W/2, nameY);
+    ctx.fillStyle = nameGrad;
+    ctx.fillText(member.name.toUpperCase(), W/2, nameY);
+    ctx.shadowBlur=0;
+    ctx.textAlign='left';
+  }
+
+  // title block — sits low in the thin plate now, font size itself scales with rarity
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  const titleGrad = ctx.createLinearGradient(0,H*0.86,0,H*0.96);
+  titleGrad.addColorStop(0,'#ffffff'); titleGrad.addColorStop(1, isTopTier ? gColor : '#e9ecf7');
+  ctx.font='900 ' + gv.titleSize + 'px Poppins, Segoe UI, sans-serif';
+  ctx.shadowColor = isTopTier ? gColor : 'rgba(0,0,0,0.6)'; ctx.shadowBlur = gv.shadowBlur;
+  ctx.fillStyle = titleGrad;
+  wrapTextCenter(ctx, track.name, W/2, H-38, W-30, gv.titleSize+3);
+  ctx.shadowBlur=0;
+  ctx.font='700 12px Poppins, Segoe UI, sans-serif'; ctx.fillStyle='rgba(255,255,255,0.78)';
+  wrapTextCenter(ctx, track.album, W/2, H-12, W-50, 16);
+  ctx.textAlign='left';
+  // v2.7.3.2: if any drawn image was CORS-tainted (fallback path from
+  // loadImg), toDataURL will throw. Preview art is a nice-to-have, not
+  // required for publishing — return a small placeholder marker so the
+  // caller can still show something without breaking the flow.
+  try {
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    console.warn('[bakeArt] preview canvas tainted (CORS on file:// origin); publish still works');
+    // 1x1 transparent PNG as a "no preview available" marker
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  }
+}
+function wrapTextCenter(ctx, text, cx, y, maxWidth, lineHeight){
+  const words = text.split(' '); let line=''; const lines=[];
+  for(const w of words){
+    const test = line ? line+' '+w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line=w; } else line=test;
+  }
+  lines.push(line);
+  const maxLines = 3;
+  const shown = lines.slice(0, maxLines);
+  if(lines.length > maxLines) shown[maxLines-1] = shown[maxLines-1].replace(/\s*\S*$/,'') + '…';
+  const startY = y - (shown.length-1)*lineHeight;
+  shown.forEach((l,i) => ctx.fillText(l, cx, startY + i*lineHeight));
+}
+
+// ---------------- spotify fetch ----------------
+async function spotifyGet(url, onWait){
+  for(let attempt=0; attempt<3; attempt++){
+    const resp = await fetch(url, {headers:{'Authorization':'Bearer '+token}});
+    if(resp.status === 429){
+      const headerWait = parseInt(resp.headers.get('Retry-After'));
+      const retryAfter = headerWait || Math.min(20, 5 + attempt*5);
+      // short cooldowns: worth auto-retrying. Long ones: stop immediately rather than
+      // hammering the endpoint for minutes, which can itself prolong a sustained-violation block.
+      if(retryAfter > 25){
+        const mins = Math.ceil(retryAfter/60);
+        throw new Error('Rate limited — Spotify says wait ' + retryAfter + 's (~' + mins + ' min) before trying again. Not auto-retrying, to avoid making it worse.');
+      }
+      if(onWait) onWait('Rate limited by Spotify — waiting ' + retryAfter + 's before retrying (attempt ' + (attempt+1) + '/3)...');
+      await new Promise(r => setTimeout(r, retryAfter*1000 + 300));
+      continue;
+    }
+    const data = await resp.json().catch(() => null);
+    if(!resp.ok){
+      const reason = data && data.error ? (data.error.message || data.error) : ('HTTP ' + resp.status);
+      throw new Error(reason + ' [' + url.replace('https://api.spotify.com','') + ']');
+    }
+    return data;
+  }
+  throw new Error('Still rate limited after a few short retries — wait before trying again.');
+}
+// ---------------- v2.9: Spotify playlist builder (PKCE) ----------------
+// WHY THIS IS DIFFERENT FROM v2.8:
+// Spotify's February 2026 Web API change (enforced for all existing
+// Development Mode apps on 2026-03-09) did three things that matter here:
+//   1. GET /playlists/{id}/tracks was REMOVED. Replacement is
+//      GET /playlists/{id}/items, and the response renames
+//      items[].track -> items[].item.
+//   2. Playlist CONTENTS are now only returned for playlists the
+//      authenticated user OWNS or COLLABORATES ON. Anything else -> 403.
+//      That means editorial/algorithmic playlists are permanently off
+//      limits, and a client-credentials (app-only) token can never read
+//      playlist items at all, because there is no "user" to own them.
+//   3. track.popularity and GET /tracks?ids= (batch) were removed, so
+//      popularity enrichment is dead everywhere (see the no-op below).
+// So: the Client ID/Secret flow in step 1 still works fine for
+// discography pulls, but playlists need a real user login. This block
+// implements Authorization Code + PKCE, which works from a static page
+// with no server and no client secret.
+const PKCE_SCOPES = 'playlist-read-private playlist-read-collaborative';
+const TOKSTORE = 'cf_sp_user_token';
+let userToken = null;         // {access_token, refresh_token, expires_at, client_id}
+let spotifyUserId = null;
+let playlistPreviewData = null;
+let playlistSources = [];
+
+function pkceRedirectUri(){
+  // Must match a Redirect URI registered on the Spotify app EXACTLY.
+  // Query string and hash are stripped so a post-login reload is stable.
+  return location.origin + location.pathname;
+}
+function randomVerifier(n){
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const bytes = crypto.getRandomValues(new Uint8Array(n));
+  return Array.from(bytes).map(b => chars[b % chars.length]).join('');
+}
+function b64url(buf){
+  let s = '';
+  new Uint8Array(buf).forEach(b => s += String.fromCharCode(b));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function pkceChallenge(verifier){
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return b64url(digest);
+}
+function loadUserToken(){
+  try{ userToken = JSON.parse(localStorage.getItem(TOKSTORE) || 'null'); }catch(e){ userToken = null; }
+}
+function saveUserToken(t){ userToken = t; try{ localStorage.setItem(TOKSTORE, JSON.stringify(t)); }catch(e){} }
+function clearUserToken(){ userToken = null; spotifyUserId = null; try{ localStorage.removeItem(TOKSTORE); }catch(e){} }
+
+async function startSpotifyLogin(){
+  const clientId = $('clientId').value.trim();
+  if(!clientId){ $('spotifyAuthStatus').textContent = 'Enter your Client ID in step 1 first (the secret is not used for this login).'; return; }
+  if(location.protocol === 'file:'){
+    $('spotifyAuthStatus').textContent = 'Spotify login cannot work from a file:// page \u2014 it needs a real origin. Host this file (GitHub Pages works) or serve it locally on http://127.0.0.1, then sign in.';
+    return;
+  }
+  const verifier = randomVerifier(64);
+  try{
+    localStorage.setItem('cf_pkce_verifier', verifier);
+    localStorage.setItem('cf_pkce_client', clientId);
+  }catch(e){}
+  const challenge = await pkceChallenge(verifier);
+  const q = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: pkceRedirectUri(),
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+    scope: PKCE_SCOPES
+  });
+  location.href = 'https://accounts.spotify.com/authorize?' + q.toString();
+}
+
+// Runs on every page load. If Spotify bounced us back with ?code=,
+// trade it for tokens and scrub the URL so a refresh doesn't re-trigger.
+async function handlePkceRedirect(){
+  const params = new URLSearchParams(location.search);
+  const err = params.get('error');
+  const code = params.get('code');
+  if(!err && !code) return;
+  history.replaceState({}, '', location.pathname);
+  if(err){
+    $('spotifyAuthStatus').textContent = 'Spotify login was cancelled or refused (' + err + ').';
+    return;
+  }
+  const verifier = localStorage.getItem('cf_pkce_verifier');
+  const clientId = localStorage.getItem('cf_pkce_client');
+  if(!verifier || !clientId){ $('spotifyAuthStatus').textContent = 'Login state was lost \u2014 try signing in again.'; return; }
+  $('spotifyAuthStatus').textContent = 'Finishing sign-in...';
+  try{
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({
+        grant_type:'authorization_code', code,
+        redirect_uri: pkceRedirectUri(),
+        client_id: clientId, code_verifier: verifier
+      }).toString()
+    });
+    const data = await resp.json().catch(()=>null);
+    if(!resp.ok) throw new Error(data ? (data.error_description || data.error) : ('HTTP ' + resp.status));
+    saveUserToken({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token || null,
+      expires_at: Date.now() + (data.expires_in || 3600)*1000 - 60000,
+      client_id: clientId
+    });
+    try{ localStorage.removeItem('cf_pkce_verifier'); }catch(e){}
+    await updateSpotifyAuthUI();
+  }catch(e){
+    $('spotifyAuthStatus').textContent = 'Sign-in failed: ' + (e.message || e) +
+      '. The usual cause is the Redirect URI on the Spotify dashboard not matching the one shown above character for character.';
+  }
+}
+
+async function refreshUserToken(){
+  if(!userToken || !userToken.refresh_token) throw new Error('Session expired \u2014 sign in again.');
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      grant_type:'refresh_token',
+      refresh_token: userToken.refresh_token,
+      client_id: userToken.client_id
+    }).toString()
+  });
+  const data = await resp.json().catch(()=>null);
+  if(!resp.ok){ clearUserToken(); throw new Error('Session expired \u2014 sign in again.'); }
+  saveUserToken({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || userToken.refresh_token,
+    expires_at: Date.now() + (data.expires_in || 3600)*1000 - 60000,
+    client_id: userToken.client_id
+  });
+}
+
+// User-token twin of spotifyGet(). Same 429 backoff, plus 401 refresh
+// and a human-readable 403 (which now almost always means "not your
+// playlist" rather than anything about scopes).
+async function spotifyUserGet(url, onWait){
+  if(!userToken) throw new Error('Sign in with Spotify first.');
+  if(Date.now() > userToken.expires_at) await refreshUserToken();
+  for(let attempt=0; attempt<3; attempt++){
+    const resp = await fetch(url, {headers:{'Authorization':'Bearer ' + userToken.access_token}});
+    if(resp.status === 401){
+      if(attempt === 0){ await refreshUserToken(); continue; }
+      throw new Error('Spotify rejected the session \u2014 sign in again.');
+    }
+    if(resp.status === 403){
+      throw new Error('Forbidden \u2014 since Spotify\'s Feb 2026 change, only playlists you own or collaborate on can be read. ' +
+        'Editorial and algorithmic playlists (Today\'s Top Hits, Discover Weekly, Release Radar, any "Made For You" mix) are blocked for every app. ' +
+        'Workaround: open the playlist in Spotify, select all \u2192 Add to a new playlist of your own, then paste that one here.');
+    }
+    if(resp.status === 429){
+      const headerWait = parseInt(resp.headers.get('Retry-After'));
+      const retryAfter = headerWait || Math.min(20, 5 + attempt*5);
+      if(retryAfter > 25) throw new Error('Rate limited \u2014 Spotify says wait ' + retryAfter + 's before retrying.');
+      if(onWait) onWait('Rate limited \u2014 waiting ' + retryAfter + 's (attempt ' + (attempt+1) + '/3)...');
+      await sleep(retryAfter*1000 + 300);
+      continue;
+    }
+    const data = await resp.json().catch(()=>null);
+    if(!resp.ok){
+      const reason = data && data.error ? (data.error.message || data.error) : ('HTTP ' + resp.status);
+      throw new Error(reason + ' [' + url.replace('https://api.spotify.com','') + ']');
+    }
+    return data;
+  }
+  throw new Error('Still rate limited after a few retries.');
+}
+
+async function updateSpotifyAuthUI(){
+  const el = $('redirectUriDisplay');
+  if(el) el.textContent = (location.protocol === 'file:') ? 'unavailable on file:// \u2014 host the page first' : pkceRedirectUri();
+  const signedIn = !!(userToken && userToken.access_token);
+  $('spotifyLoginBtn').style.display = signedIn ? 'none' : 'inline-block';
+  $('spotifyLogoutBtn').style.display = signedIn ? 'inline-block' : 'none';
+  $('myPlaylistsBtn').style.display = signedIn ? 'inline-block' : 'none';
+  if(!signedIn){ $('spotifyAuthStatus').textContent = 'Not signed in \u2014 playlist reading needs an account login.'; return; }
+  try{
+    const me = await spotifyUserGet('https://api.spotify.com/v1/me');
+    spotifyUserId = me.id;
+    $('spotifyAuthStatus').textContent = '\u2713 Signed in as ' + (me.display_name || me.id) + ' \u2014 your own and collaborative playlists are readable.';
+  }catch(e){
+    $('spotifyAuthStatus').textContent = 'Signed in, but the session check failed: ' + (e.message || e);
+  }
+}
+
+$('spotifyLoginBtn').addEventListener('click', () => { startSpotifyLogin(); });
+$('spotifyLogoutBtn').addEventListener('click', () => { clearUserToken(); $('myPlaylistPicker').style.display='none'; updateSpotifyAuthUI(); });
+
+// GET /me/playlists returns owned AND followed playlists. Only the owned
+// or collaborative ones actually have readable contents, so the rest are
+// rendered dimmed with a reason rather than silently failing on click.
+$('myPlaylistsBtn').addEventListener('click', async () => {
+  const wrap = $('myPlaylistPicker');
+  $('spotifyAuthStatus').textContent = 'Loading your playlists...';
+  try{
+    if(!spotifyUserId){ const me = await spotifyUserGet('https://api.spotify.com/v1/me'); spotifyUserId = me.id; }
+    let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
+    const all = [];
+    while(url && all.length < 300){
+      const page = await spotifyUserGet(url);
+      (page.items || []).forEach(p => { if(p) all.push(p); });
+      url = page.next;
+      if(url) await sleep(150);
+    }
+    if(all.length === 0){ $('spotifyAuthStatus').textContent = 'No playlists found on your account.'; return; }
+    wrap.innerHTML = all.map(p => {
+      const mine = (p.owner && p.owner.id === spotifyUserId) || p.collaborative;
+      const img = (p.images && p.images[0]) ? p.images[0].url : null;
+      const count = (p.items && p.items.total != null) ? p.items.total
+                  : ((p.tracks && p.tracks.total != null) ? p.tracks.total : null);
+      return '<div class="showPickItem" data-pid="' + p.id + '" data-mine="' + (mine?'1':'0') + '" style="' + (mine?'':'opacity:.45;') + '">' +
+        (img ? '<img src="' + img + '" style="width:46px;height:46px;">' : '<div style="width:46px;height:46px;background:var(--ink);border-radius:6px;"></div>') +
+        '<div class="spInfo"><div class="spTitle">' + escapeHtml(p.name || 'Untitled') + '</div>' +
+        '<div class="spMeta">' + (count != null ? count + ' tracks \u00b7 ' : '') +
+        (mine ? (p.collaborative ? 'collaborative' : 'yours') : 'followed \u2014 contents not readable') + '</div></div></div>';
+    }).join('');
+    wrap.querySelectorAll('.showPickItem').forEach(row => row.addEventListener('click', async () => {
+      if(row.dataset.mine !== '1'){
+        $('playlistStatus').textContent = 'You only follow that playlist. Spotify no longer exposes contents of playlists you do not own \u2014 duplicate it into your own library first.';
+        return;
+      }
+      wrap.style.display = 'none';
+      await loadPlaylistById(row.dataset.pid);
+    }));
+    wrap.style.display = 'block';
+    const mineCount = all.filter(p => (p.owner && p.owner.id === spotifyUserId) || p.collaborative).length;
+    $('spotifyAuthStatus').textContent = all.length + ' playlists \u2014 ' + mineCount + ' readable (yours/collaborative).';
+  }catch(e){
+    $('spotifyAuthStatus').textContent = 'Failed: ' + (e.message || e);
+  }
+});
+
+function extractPlaylistId(raw){
+  const s = (raw || '').trim();
+  if(!s) throw new Error('Paste a playlist link first.');
+  let m = s.match(/^spotify:playlist:([A-Za-z0-9]+)/);
+  if(m) return m[1];
+  m = s.match(/playlist\/([A-Za-z0-9]+)/);
+  if(m) return m[1];
+  if(/^[A-Za-z0-9]{16,30}$/.test(s)) return s;
+  if(/open\.spotify\.com\/(album|artist|track)\//.test(s))
+    throw new Error('That is an album/artist/track link, not a playlist. Use step 3 above for those.');
+  throw new Error('Could not find a playlist id in that link.');
+}
+
+async function fetchSpotifyPlaylist(playlistId){
+  const meta = await spotifyUserGet('https://api.spotify.com/v1/playlists/' + playlistId,
+    msg => $('playlistStatus').textContent = msg);
+  const name = meta.name || 'Untitled playlist';
+  const owner = (meta.owner && meta.owner.display_name) || '';
+  const cover = (meta.images && meta.images[0]) ? meta.images[0].url : null;
+  const out = [];
+  let localSkipped = 0;
+  // /items replaced /tracks in Feb 2026; each row's payload moved from
+  // .track to .item, with .track kept as a deprecated alias. Read both.
+  let url = 'https://api.spotify.com/v1/playlists/' + playlistId + '/items?limit=50';
+  while(url){
+    const page = await spotifyUserGet(url, msg => $('playlistStatus').textContent = msg);
+    (page.items || []).forEach(row => {
+      const t = row && (row.item || row.track);
+      if(!t) return;
+      if(t.type === 'episode') return;                 // podcasts don't belong on cards
+      if(row.is_local || t.is_local || !t.id){ localSkipped++; return; }
+      out.push({
+        id: t.id,
+        name: t.name,
+        albumName: (t.album && t.album.name) || 'Single',
+        artistName: (t.artists || []).map(a => a.name).join(', '),
+        imageUrl: (t.album && t.album.images && t.album.images[0]) ? t.album.images[0].url : cover
+      });
+    });
+    url = page.next;
+    $('playlistStatus').textContent = 'Loading "' + name + '"... ' + out.length + ' tracks';
+    if(url) await sleep(200);
+  }
+  return { id: playlistId, name, owner, cover, tracks: out, localSkipped };
+}
+
+async function loadPlaylistById(id){
+  $('fetchPlaylistBtn').disabled = true;
+  $('playlistPreview').style.display = 'none';
+  try{
+    $('playlistStatus').textContent = 'Loading playlist...';
+    const data = await fetchSpotifyPlaylist(id);
+    if(data.tracks.length === 0){
+      $('playlistStatus').textContent = 'That playlist came back with no readable tracks.';
+    } else {
+      renderPlaylistPreview(data);
+      $('playlistStatus').textContent = 'Loaded "' + data.name + '" \u2014 pick what to append.';
+    }
+  }catch(e){
+    $('playlistStatus').textContent = 'Failed: ' + (e.message || e);
+  }finally{
+    $('fetchPlaylistBtn').disabled = false;
+  }
+}
+
+function renderPlaylistPreview(data){
+  playlistPreviewData = data;
+  $('playlistPreviewTitle').textContent = data.name;
+  $('playlistPreviewMeta').textContent =
+    (data.owner ? 'by ' + data.owner + ' \u00b7 ' : '') + data.tracks.length + ' playable tracks' +
+    (data.localSkipped ? ' (' + data.localSkipped + ' local/unavailable skipped)' : '');
+  const list = $('playlistTrackList');
+  list.innerHTML = '';
+  const existingIds = new Set(tracksData.map(t => t.id));
+  const dedupe = $('dedupeTracks').checked;
+  const excludeInst = $('excludeInstrumental').checked;
+  const instRegex = /\b(instrumental|inst\.?|karaoke|a\s?cappella|beat\s?only|off\s?vocal)\b/i;
+  const seenName = new Set(tracksData.map(t => (t.name || '').toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim()));
+  data.tracks.forEach((t, i) => {
+    const nameKey = t.name.toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim();
+    const dupe = existingIds.has(t.id) || (dedupe && seenName.has(nameKey));
+    const inst = excludeInst && instRegex.test(t.name);
+    const row = document.createElement('div');
+    row.className = 'track';
+    row.innerHTML =
+      '<input type="checkbox" class="plchk" data-i="' + i + '"' + ((!dupe && !inst) ? ' checked' : '') + '>' +
+      (t.imageUrl ? '<img src="' + t.imageUrl + '">' : '<div style="width:34px;height:34px;background:#222;border-radius:5px;"></div>') +
+      '<div class="meta"><div class="t">' + escapeHtml(t.name) + '</div><div class="a">' +
+        escapeHtml(t.artistName || '') + (t.albumName ? ' \u00b7 ' + escapeHtml(t.albumName) : '') + '</div></div>' +
+      (dupe ? '<span class="count-pill">already in list</span>' : (inst ? '<span class="count-pill">instrumental</span>' : ''));
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.plchk').forEach(c => c.addEventListener('change', updatePlaylistPickCount));
+  updatePlaylistPickCount();
+  $('playlistPreview').style.display = 'block';
+}
+function updatePlaylistPickCount(){
+  const n = document.querySelectorAll('.plchk:checked').length;
+  const total = playlistPreviewData ? playlistPreviewData.tracks.length : 0;
+  $('playlistPickCount').textContent = n + ' / ' + total + ' selected';
+}
+function renderPlaylistStack(){
+  const wrap = $('playlistStack');
+  if(playlistSources.length === 0){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--dim);margin-bottom:6px;">Stacked into this deck:</div>' +
+    playlistSources.map(p =>
+      '<div style="font-size:12px;padding:4px 0;">\u2713 ' + escapeHtml(p.name) +
+      ' <span class="count-pill">' + p.added + ' tracks</span></div>').join('');
+}
+
+$('fetchPlaylistBtn').addEventListener('click', async () => {
+  try{
+    const id = extractPlaylistId($('playlistUrl').value);
+    await loadPlaylistById(id);
+  }catch(e){ $('playlistStatus').textContent = 'Failed: ' + (e.message || e); }
+});
+$('playlistSelectAll').addEventListener('click', e => { e.preventDefault();
+  document.querySelectorAll('.plchk').forEach(c => c.checked = true); updatePlaylistPickCount(); });
+$('playlistSelectNone').addEventListener('click', e => { e.preventDefault();
+  document.querySelectorAll('.plchk').forEach(c => c.checked = false); updatePlaylistPickCount(); });
+$('cancelPlaylistBtn').addEventListener('click', () => {
+  $('playlistPreview').style.display = 'none'; playlistPreviewData = null; $('playlistStatus').textContent = '';
+});
+$('clearTracksBtn').addEventListener('click', () => {
+  if(tracksData.length && !confirm('Clear the fetched track list? (Your deck contents in step 4 are not touched.)')) return;
+  tracksData = []; playlistSources = []; renderPlaylistStack();
+  $('tracksWrap').style.display = 'none';
+  $('mintBtn').disabled = true; $('mintAllBtn').disabled = true;
+  $('playlistStatus').textContent = 'Track list cleared.';
+});
+$('confirmPlaylistBtn').addEventListener('click', () => {
+  if(!playlistPreviewData) return;
+  const useAlbum = $('playlistUseAlbumName').checked;
+  const picked = Array.from(document.querySelectorAll('.plchk:checked')).map(c => parseInt(c.dataset.i));
+  if(picked.length === 0){ $('playlistStatus').textContent = 'Nothing selected.'; return; }
+  const existingIds = new Set(tracksData.map(t => t.id));
+  let added = 0, skipped = 0;
+  picked.forEach(i => {
+    const t = playlistPreviewData.tracks[i];
+    if(existingIds.has(t.id)){ skipped++; return; }
+    existingIds.add(t.id);
+    tracksData.push({
+      id: t.id, name: t.name,
+      album: useAlbum ? t.albumName : playlistPreviewData.name,
+      imageUrl: t.imageUrl, artistName: t.artistName || null
+    });
+    added++;
+  });
+  playlistSources.push({ name: playlistPreviewData.name, added });
+  renderPlaylistStack();
+  if(!$('deckName').value.trim()) $('deckName').value = playlistPreviewData.name;
+  $('playlistPreview').style.display = 'none';
+  playlistPreviewData = null;
+  renderTracks();
+  $('mintBtn').disabled = false;
+  $('mintAllBtn').disabled = false;
+  $('playlistStatus').textContent = 'Appended ' + added + ' track(s)' + (skipped ? ' (' + skipped + ' already in the list)' : '') +
+    '. Track list now has ' + tracksData.length + ' \u2014 load another playlist to stack more, or mint in step 3.';
+  $('playlistUrl').value = '';
+});
+
+// Kick off on load: restore any saved session and process a login bounce.
+loadUserToken();
+(async () => { await handlePkceRedirect(); await updateSpotifyAuthUI(); })();
+
+// JSONP helper — iTunes' search/lookup endpoints are old-school and most reliably
+// called this way from a browser (a script element isn't subject to CORS at all).
+let jsonpCounter = 0;
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'itunesCb' + (jsonpCounter++);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('iTunes request timed out')); }, 15000);
+    function cleanup(){ clearTimeout(timeout); delete window[cbName]; script.remove(); }
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    script.onerror = () => { cleanup(); reject(new Error('iTunes request failed to load')); };
+    document.body.appendChild(script);
+  });
+}
+
+$('fetchBtn').addEventListener('click', () => {
+  const contentType = document.querySelector('input[name=contentType]:checked').value;
+  if(contentType === 'tv'){ fetchViaTVmaze(); return; }
+  if(contentType === 'movie'){ fetchViaTMDB(); return; }
+  const scope = document.querySelector('input[name=musicScope]:checked').value;
+  const source = document.querySelector('input[name=fetchSource]:checked').value;
+  if(scope === 'album'){ fetchAlbumTracks(); return; }
+  if(source === 'itunes') fetchViaItunes(); else fetchViaSpotify();
+});
+document.querySelectorAll('input[name=fetchSource]').forEach(r => r.addEventListener('change', e => {
+  if(e.target.value === 'itunes') $('fetchBtn').disabled = false;
+  else $('fetchBtn').disabled = !token;
+}));
+document.querySelectorAll('input[name=musicScope]').forEach(r => r.addEventListener('change', e => {
+  const isAlbum = e.target.value === 'album';
+  $('artistScopeControls').style.display = isAlbum ? 'none' : 'block';
+  $('albumScopeControls').style.display = isAlbum ? 'block' : 'none';
+  $('artistNameLabel').textContent = isAlbum ? 'Album / soundtrack name' : 'Artist';
+  $('fetchBtn').textContent = isAlbum ? 'Fetch selected album' : 'Fetch full discography';
+  $('fetchBtn').disabled = isAlbum ? !selectedAlbum : !token;
+}));
+document.querySelectorAll('input[name=contentType]').forEach(r => r.addEventListener('change', e => {
+  const mode = e.target.value;               // 'music' | 'tv' | 'movie'
+  const isTv = mode === 'tv';
+  const isMovie = mode === 'movie';
+  const isMusic = mode === 'music';
+  $('deckNameLabel').textContent = isMovie ? 'Deck / actor name'
+                                    : isTv ? 'Deck / show name'
+                                           : 'Deck / artist name';
+  $('artistNameLabel').textContent = isMovie ? 'Actor'
+                                     : isTv ? 'Show'
+                                            : 'Artist';
+  if (isMovie) $('artistName').value = 'Michael B. Jordan';
+  else if (isTv) $('artistName').value = 'Breaking Bad';
+  else $('artistName').value = 'aespa';
+  $('membersHeading').textContent = isMovie ? '2 · Character faces'
+                                    : isTv ? '2 · Character faces'
+                                           : '2 · Member face bubbles';
+  $('discographyHeading').textContent = isMovie ? '3 · Pull filmography'
+                                        : isTv ? '3 · Pull episodes'
+                                               : '3 · Pull discography';
+  $('memberStatus').textContent = isMovie
+    ? 'Auto-fill characters after fetching filmography, or upload/paste/crop faces manually per character.'
+    : (isTv
+      ? 'Fetch the full cast automatically below, or upload/paste/crop faces manually per character.'
+      : 'Upload, paste (Ctrl+V), or search Spotify for a face photo, then crop it to fit the bubble.');
+  $('fetchCastBtn').style.display = isTv ? 'block' : 'none';
+  $('fetchMovieCharactersBtn').style.display = isMovie ? 'block' : 'none';
+  $('musicSourceControls').style.display = isMusic ? 'block' : 'none';
+  $('playlistPanel').style.display = isMusic ? 'block' : 'none';
+  $('tvSourceControls').style.display = isTv ? 'block' : 'none';
+  $('movieSourceControls').style.display = isMovie ? 'block' : 'none';
+  $('credsPanel').style.display = isMusic ? 'block' : 'none';
+  $('tmdbCredsPanel').style.display = isMovie ? 'block' : 'none';
+  const scope = document.querySelector('input[name=musicScope]:checked').value;
+  if(isMovie){
+    $('fetchBtn').textContent = 'Fetch full filmography';
+    $('fetchBtn').disabled = !selectedActor;
+  } else if(isTv){
+    $('fetchBtn').textContent = 'Fetch full episode list';
+    $('fetchBtn').disabled = !selectedTVShow;
+  } else if(scope === 'album'){
+    $('fetchBtn').textContent = 'Fetch selected album';
+    $('fetchBtn').disabled = !selectedAlbum;
+  } else {
+    $('fetchBtn').textContent = 'Fetch full discography';
+    $('fetchBtn').disabled = !token;
+  }
+}));
+
+let selectedAlbum = null;
+let albumCandidates = [];
+async function searchAlbums(){
+  const q = $('artistName').value.trim();
+  if(!q){ $('albumSearchStatus').textContent = 'Type an album/soundtrack name first.'; return; }
+  const source = document.querySelector('input[name=fetchSource]:checked').value;
+  $('albumSearchStatus').textContent = 'Searching...';
+  $('albumPicker').style.display = 'none';
+  try{
+    if(source === 'spotify'){
+      if(!token){ $('albumSearchStatus').textContent = 'Connect Spotify first (step 1).'; return; }
+      const res = await spotifyGet('https://api.spotify.com/v1/search?q=' + encodeURIComponent(q) + '&type=album&limit=6');
+      albumCandidates = (res.albums ? res.albums.items : []).map(a => ({
+        id: a.id, name: a.name, artistName: (a.artists||[]).map(x=>x.name).join(', '),
+        year: a.release_date ? a.release_date.slice(0,4) : '?',
+        image: a.images && a.images[0] ? a.images[0].url : null, source: 'spotify'
+      }));
+    } else {
+      const res = await jsonp('https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=album&limit=6');
+      albumCandidates = (res.results||[]).map(a => ({
+        id: a.collectionId, name: a.collectionName, artistName: a.artistName,
+        year: a.releaseDate ? a.releaseDate.slice(0,4) : '?',
+        image: a.artworkUrl100 ? a.artworkUrl100.replace('100x100bb','600x600bb') : null, source: 'itunes'
+      }));
+    }
+    if(albumCandidates.length === 0){ $('albumSearchStatus').textContent = 'No albums found for "' + q + '".'; return; }
+    renderAlbumPicker();
+    $('albumSearchStatus').textContent = albumCandidates.length + ' match' + (albumCandidates.length===1?'':'es') + ' — pick the right release.';
+  }catch(e){ $('albumSearchStatus').textContent = 'Search failed: ' + e.message; }
+}
+function renderAlbumPicker(){
+  const wrap = $('albumPicker');
+  wrap.innerHTML = '';
+  albumCandidates.forEach((a, i) => {
+    const el = document.createElement('div');
+    el.className = 'showPickItem';
+    el.innerHTML = `
+      ${a.image ? `<img src="${a.image}" style="width:54px;height:54px;">` : `<div style="width:54px;height:54px;background:var(--ink);border-radius:6px;"></div>`}
+      <div class="spInfo">
+        <div class="spTitle">${escapeHtml(a.name)}</div>
+        <div class="spMeta">${escapeHtml(a.artistName)} · ${a.year}</div>
+      </div>
+    `;
+    el.addEventListener('click', () => selectAlbum(i));
+    wrap.appendChild(el);
+  });
+  wrap.style.display = 'block';
+}
+function selectAlbum(i){
+  selectedAlbum = albumCandidates[i];
+  $('albumPicker').style.display = 'none';
+  $('selectedAlbumStatus').innerHTML = `Selected: <b>${escapeHtml(selectedAlbum.name)}</b> by ${escapeHtml(selectedAlbum.artistName)} (${selectedAlbum.year}) — <a href="#" id="changeAlbumLink" class="linkbtn">change</a>`;
+  $('changeAlbumLink').addEventListener('click', e => { e.preventDefault(); $('albumPicker').style.display = 'block'; });
+  if(!$('deckName').value.trim()) $('deckName').value = selectedAlbum.name;
+  $('fetchBtn').disabled = false;
+}
+$('searchAlbumBtn').addEventListener('click', searchAlbums);
+
+async function fetchAlbumTracks(){
+  if(!selectedAlbum){ $('fetchStatus').textContent = 'Search and pick an album first (above).'; return; }
+  const album = selectedAlbum;
+  $('fetchStatus').textContent = 'Fetching tracks for "' + album.name + '"...';
+  $('fetchBtn').disabled = true;
+  try{
+    const dedupe = $('dedupeTracks').checked;
+    const excludeInst = $('excludeInstrumental').checked;
+    const instRegex = /\b(instrumental|inst\.?|karaoke|a\s?cappella|beat\s?only|off\s?vocal)\b/i;
+    const seenTrack = new Set();
+    tracksData = [];
+    if(album.source === 'spotify'){
+      const tr = await spotifyGet('https://api.spotify.com/v1/albums/' + album.id + '/tracks?limit=50');
+      tr.items.forEach(t => {
+        if(excludeInst && instRegex.test(t.name)) return;
+        const key = t.name.toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim();
+        if(dedupe){ if(seenTrack.has(key)) return; seenTrack.add(key); }
+        tracksData.push({id:t.id, name:t.name, album:album.name, imageUrl:album.image});
+      });
+    } else {
+      const tr = await jsonp('https://itunes.apple.com/lookup?id=' + album.id + '&entity=song&limit=200');
+      (tr.results||[]).filter(r => r.wrapperType==='track').forEach(t => {
+        if(excludeInst && instRegex.test(t.trackName)) return;
+        const key = t.trackName.toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim();
+        if(dedupe){ if(seenTrack.has(key)) return; seenTrack.add(key); }
+        tracksData.push({id:'itunes_'+t.trackId, name:t.trackName, album:album.name, imageUrl:album.image, previewUrl:t.previewUrl||null});
+      });
+    }
+    renderTracks();
+    $('fetchStatus').textContent = tracksData.length + ' tracks pulled from "' + album.name + '".';
+    // v2.1: same popularity enrichment as the full-artist path
+    if(album.source === 'spotify') await enrichSpotifyPopularity(tracksData);
+    $('mintBtn').disabled = false;
+    $('mintAllBtn').disabled = false;
+  }catch(e){ $('fetchStatus').textContent = 'Failed: ' + e.message; }
+  finally{ $('fetchBtn').disabled = false; }
+}
+
+
+let selectedTVShow = null;
+let showCandidates = [];
+async function searchTVShows(){
+  const q = $('artistName').value.trim();
+  if(!q){ $('showSearchStatus').textContent = 'Type a show name first.'; return; }
+  $('showSearchStatus').textContent = 'Searching TVmaze...';
+  $('showPicker').style.display = 'none';
+  try{
+    const res = await fetch('https://api.tvmaze.com/search/shows?q=' + encodeURIComponent(q)).then(r=>r.json());
+    if(!res.length){ $('showSearchStatus').textContent = 'No shows found for "' + q + '".'; return; }
+    showCandidates = res.map(r => r.show);
+    renderShowPicker();
+    $('showSearchStatus').textContent = showCandidates.length + ' match' + (showCandidates.length===1?'':'es') + ' — pick the right one (check the year/network to tell remakes apart).';
+  }catch(e){ $('showSearchStatus').textContent = 'Search failed: ' + e.message; }
+}
+function renderShowPicker(){
+  const wrap = $('showPicker');
+  wrap.innerHTML = '';
+  showCandidates.forEach((show, i) => {
+    const imgUrl = show.image ? (show.image.medium || show.image.original) : null;
+    const year = show.premiered ? show.premiered.slice(0,4) : '?';
+    const network = (show.network && show.network.name) || (show.webChannel && show.webChannel.name) || 'unknown network';
+    const type = show.type || '';
+    const el = document.createElement('div');
+    el.className = 'showPickItem';
+    el.innerHTML = `
+      ${imgUrl ? `<img src="${imgUrl}">` : `<div style="width:46px;height:64px;background:var(--ink);border-radius:6px;"></div>`}
+      <div class="spInfo">
+        <div class="spTitle">${escapeHtml(show.name)}</div>
+        <div class="spMeta">${year} · ${escapeHtml(network)} · ${escapeHtml(type)}</div>
+      </div>
+    `;
+    el.addEventListener('click', () => selectTVShow(i));
+    wrap.appendChild(el);
+  });
+  wrap.style.display = 'block';
+}
+function selectTVShow(i){
+  selectedTVShow = showCandidates[i];
+  $('showPicker').style.display = 'none';
+  const year = selectedTVShow.premiered ? selectedTVShow.premiered.slice(0,4) : '?';
+  $('selectedShowStatus').innerHTML = `Selected: <b>${escapeHtml(selectedTVShow.name)}</b> (${year}) — <a href="#" id="changeShowLink" class="linkbtn">change</a>`;
+  $('changeShowLink').addEventListener('click', e => { e.preventDefault(); $('showPicker').style.display = 'block'; });
+  if(!$('deckName').value.trim()) $('deckName').value = selectedTVShow.name;
+  $('fetchBtn').disabled = false;
+}
+
+let castCandidates = [];
+$('searchShowBtn').addEventListener('click', searchTVShows);
+async function fetchCastFromTVmaze(){
+  if(!selectedTVShow){ $('memberStatus').textContent = 'Search and pick a show first (above).'; return; }
+  const show = selectedTVShow;
+  $('memberStatus').textContent = 'Fetching cast for "' + show.name + '"...';
+  $('castPicker').style.display = 'none';
+  try{
+    const cast = await fetch('https://api.tvmaze.com/shows/' + show.id + '/cast').then(r=>r.json());
+    castCandidates = cast
+      .map(entry => entry.character)
+      .filter(ch => ch && ch.name && !members.some(m => m.name === ch.name));
+    if(castCandidates.length === 0){ $('memberStatus').textContent = 'No new characters found (or all are already added).'; return; }
+    renderCastPicker();
+    $('memberStatus').textContent = 'Found ' + castCandidates.length + ' characters — pick which ones to add.';
+  }catch(e){ $('memberStatus').textContent = 'Cast fetch failed: ' + e.message; }
+}
+function renderCastPicker(){
+  const wrap = $('castPickerList');
+  wrap.innerHTML = '';
+  castCandidates.forEach((ch, i) => {
+    const imgUrl = ch.image ? (ch.image.medium || ch.image.original) : null;
+    const el = document.createElement('label');
+    el.className = 'castPickItem';
+    el.innerHTML = `
+      <input type="checkbox" class="castChk" data-i="${i}">
+      ${imgUrl ? `<img src="${imgUrl}">` : `<div class="castPh">?</div>`}
+      <span>${escapeHtml(ch.name)}</span>
+    `;
+    wrap.appendChild(el);
+  });
+  $('castPicker').style.display = 'block';
+}
+$('castSelectAll').addEventListener('click', e => { e.preventDefault(); document.querySelectorAll('.castChk').forEach(c=>c.checked=true); });
+$('castSelectNone').addEventListener('click', e => { e.preventDefault(); document.querySelectorAll('.castChk').forEach(c=>c.checked=false); });
+$('addSelectedCastBtn').addEventListener('click', async () => {
+  // v2.7.3: dual path — TV cast (castCandidates array of TVmaze people)
+  // or movie characters (list stored on castPickerList._movieCharList).
+  const movieChars = $('castPickerList')._movieCharList;
+  const isMovieMode = document.querySelector('input[name=contentType]:checked').value === 'movie';
+  const checkedTV = Array.from(document.querySelectorAll('.castChk:checked')).map(c=>parseInt(c.dataset.i));
+  const checkedMovie = Array.from(document.querySelectorAll('.castPickBox:checked')).map(c=>parseInt(c.dataset.idx));
+
+  if (isMovieMode && movieChars) {
+    if (checkedMovie.length === 0) { $('memberStatus').textContent = 'Check at least one character first.'; return; }
+    $('addSelectedCastBtn').disabled = true;
+    let added = 0;
+    for (const i of checkedMovie) {
+      const c = movieChars[i];
+      $('memberStatus').textContent = 'Adding ' + (added+1) + ' / ' + checkedMovie.length + '...';
+      let img = null;
+      if (c.face) { try { img = await urlToDataURL(c.face); } catch(e) {} }
+      const m = { id: 'm_' + Date.now() + Math.random().toString(36).slice(2, 6), name: c.character, img, include: true };
+      members.push(m);
+      await idbPut('members', m);
+      added++;
+    }
+    renderMembers();
+    $('castPicker').style.display = 'none';
+    $('memberStatus').textContent = 'Added ' + added + ' character(s). Crop faces to fit the bubble — the poster crop is a placeholder until you paste a proper portrait.';
+    $('addSelectedCastBtn').disabled = false;
+    return;
+  }
+
+  // TV path (existing behavior)
+  if(checkedTV.length===0){ $('memberStatus').textContent = 'Check at least one character first.'; return; }
+  $('addSelectedCastBtn').disabled = true;
+  let added = 0;
+  for(const i of checkedTV){
+    const ch = castCandidates[i];
+    $('memberStatus').textContent = 'Adding ' + (added+1) + ' / ' + checkedTV.length + '...';
+    let img = null;
+    const imgUrl = ch.image ? (ch.image.original || ch.image.medium) : null;
+    if(imgUrl){ try{ img = await urlToDataURL(imgUrl); }catch(e){} }
+    const m = {id:'m_'+Date.now()+Math.random().toString(36).slice(2,6), name:ch.name, img, include:true};
+    members.push(m);
+    await idbPut('members', m);
+    added++;
+  }
+  renderMembers();
+  $('castPicker').style.display = 'none';
+  $('memberStatus').textContent = 'Added ' + added + ' characters. Crop any faces that need adjusting.';
+  $('addSelectedCastBtn').disabled = false;
+});
+$('fetchCastBtn').addEventListener('click', fetchCastFromTVmaze);
+
+async function fetchViaTVmaze(){
+  if(!selectedTVShow){ $('fetchStatus').textContent = 'Search and pick a show first (above).'; return; }
+  const show = selectedTVShow;
+  $('fetchStatus').textContent = 'Fetching episode list for "' + show.name + '"...';
+  $('fetchBtn').disabled = true;
+  try{
+    const episodes = await fetch('https://api.tvmaze.com/shows/' + show.id + '/episodes').then(r=>r.json());
+    const includeSpecials = $('includeSpecials').checked;
+    const dedupe = $('dedupeTracks').checked;
+    const seenTitle = new Set();
+    tracksData = [];
+    episodes.forEach(ep => {
+      if(!includeSpecials && ep.season === 0) return;
+      if(dedupe){ const key = ep.name.toLowerCase(); if(seenTitle.has(key)) return; seenTitle.add(key); }
+      const imageUrl = ep.image ? (ep.image.original || ep.image.medium) : (show.image ? (show.image.original||show.image.medium) : null);
+      // v2.1: capture TVmaze's user-average rating (0-10) as a
+      // normalized 0-100 score so Card Forge's Configure modal can
+      // pick top-rated episodes when the player caps a season.
+      // Unrated episodes get null (falls through to first-N ordering).
+      const rating = ep.rating && typeof ep.rating.average === 'number' ? ep.rating.average : null;
+      const score = rating !== null ? Math.round(rating * 10) : null;
+      // v2.5: capture episode summary (HTML string from TVmaze,
+      // e.g. "<p>The gang tries to...</p>"). Strip tags so the card
+      // viewer can render it as plain text without XSS risk.
+      const rawSummary = ep.summary || '';
+      const description = rawSummary ? rawSummary.replace(/<[^>]+>/g, '').trim() : null;
+      tracksData.push({
+        id: 'tvmaze_' + ep.id, name: ep.name || ('Episode ' + ep.number),
+        album: 'Season ' + ep.season, imageUrl, externalUrl: ep.url || null,
+        score: score,
+        description: description
+      });
+    });
+    renderTracks();
+    $('fetchStatus').textContent = tracksData.length + ' episodes pulled from ' + show.name + '.';
+    $('mintBtn').disabled = false;
+    $('mintAllBtn').disabled = false;
+  }catch(e){ $('fetchStatus').textContent = 'Failed: ' + e.message; }
+  finally{ $('fetchBtn').disabled = false; }
+}
+
+// ─── TMDB (Movies) ─────────────────────────────────────────────────
+// TMDB v3 API: https://developer.themoviedb.org/reference/intro
+// - Search person:  /search/person?query=X
+// - Person details: /person/{id}   (for profile_path, biography)
+// - Movie credits:  /person/{id}/movie_credits  (cast + crew; we use cast only)
+// Poster URL prefix: https://image.tmdb.org/t/p/w500{poster_path}
+// Profile URL prefix: https://image.tmdb.org/t/p/w300{profile_path}
+let tmdbKey = null;
+let selectedActor = null;   // { id, name, profile_path }
+let lastActorCredits = null; // cached full cast list from last fetch, used to auto-fill characters
+try {
+  tmdbKey = localStorage.getItem('deckBuilder_tmdbKey') || null;
+  if (tmdbKey) { const el = document.getElementById('tmdbKey'); if (el) el.value = tmdbKey; }
+} catch(_) {}
+
+function tmdbImg(path, size) {
+  if (!path) return null;
+  const s = size || 'w500';
+  return 'https://image.tmdb.org/t/p/' + s + path;
+}
+
+async function tmdbGet(pathAndQuery) {
+  if (!tmdbKey) throw new Error('TMDB API key not set — enter it in step 1.');
+  const sep = pathAndQuery.includes('?') ? '&' : '?';
+  const url = 'https://api.themoviedb.org/3' + pathAndQuery + sep + 'api_key=' + encodeURIComponent(tmdbKey);
+  const r = await fetch(url);
+  if (r.status === 401) throw new Error('TMDB rejected the API key (401). Double-check you pasted the v3 auth key.');
+  if (r.status === 404) throw new Error('TMDB 404 — resource not found.');
+  if (!r.ok) throw new Error('TMDB request failed (HTTP ' + r.status + ').');
+  return r.json();
+}
+
+const tmdbConnectBtn = document.getElementById('tmdbConnectBtn');
+if (tmdbConnectBtn) {
+  tmdbConnectBtn.addEventListener('click', async () => {
+    const key = (document.getElementById('tmdbKey').value || '').trim();
+    if (!key) { $('tmdbStatus').textContent = 'Paste your API key first.'; return; }
+    $('tmdbStatus').textContent = 'Verifying key...';
+    tmdbKey = key;
+    try {
+      // Ping the config endpoint — cheap, no auth-scope surprises
+      await tmdbGet('/configuration');
+      try { localStorage.setItem('deckBuilder_tmdbKey', key); } catch(_) {}
+      $('tmdbStatus').textContent = '✓ TMDB connected. Key remembered in this browser.';
+    } catch(e) {
+      tmdbKey = null;
+      $('tmdbStatus').textContent = 'Failed: ' + e.message;
+    }
+  });
+}
+const tmdbForgetBtn = document.getElementById('tmdbForgetBtn');
+if (tmdbForgetBtn) {
+  tmdbForgetBtn.addEventListener('click', () => {
+    tmdbKey = null;
+    document.getElementById('tmdbKey').value = '';
+    try { localStorage.removeItem('deckBuilder_tmdbKey'); } catch(_) {}
+    $('tmdbStatus').textContent = 'Key forgotten.';
+  });
+}
+
+const searchActorBtn = document.getElementById('searchActorBtn');
+if (searchActorBtn) {
+  searchActorBtn.addEventListener('click', async () => {
+    const q = ($('artistName').value || '').trim();
+    if (!q) { $('actorSearchStatus').textContent = 'Type an actor name in the field above first.'; return; }
+    if (!tmdbKey) { $('actorSearchStatus').textContent = 'Connect TMDB in step 1 first.'; return; }
+    $('actorSearchStatus').textContent = 'Searching TMDB for "' + q + '"...';
+    try {
+      const data = await tmdbGet('/search/person?query=' + encodeURIComponent(q));
+      const results = (data.results || []).slice(0, 10);
+      if (results.length === 0) {
+        $('actorSearchStatus').textContent = 'No actors found for "' + q + '".';
+        $('actorPicker').style.display = 'none';
+        return;
+      }
+      $('actorSearchStatus').textContent = results.length + ' match(es). Pick the right one:';
+      $('actorPicker').style.display = 'block';
+      $('actorPicker').innerHTML = results.map(p => {
+        const known = (p.known_for || []).map(k => k.title || k.name).filter(Boolean).slice(0, 3).join(', ');
+        const face = tmdbImg(p.profile_path, 'w185');
+        return '<div class="pickRow" data-id="' + p.id + '" data-name="' + escapeAttr(p.name) + '" data-profile="' + escapeAttr(p.profile_path || '') + '" style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid #334155;border-radius:6px;margin-bottom:6px;cursor:pointer;background:#1e293b;">'
+          + (face ? '<img src="' + face + '" style="width:48px;height:64px;object-fit:cover;border-radius:4px;">' : '<div style="width:48px;height:64px;background:#334155;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;">🎭</div>')
+          + '<div style="flex:1"><div style="font-weight:600;">' + escapeHtml(p.name) + '</div>'
+          + '<div style="font-size:12px;color:#94a3b8;">' + (known ? 'Known for: ' + escapeHtml(known) : 'No known-for data') + '</div></div></div>';
+      }).join('');
+      $('actorPicker').querySelectorAll('.pickRow').forEach(row => {
+        row.addEventListener('click', () => {
+          selectedActor = {
+            id: row.dataset.id,
+            name: row.dataset.name,
+            profile_path: row.dataset.profile || null
+          };
+          $('selectedActorStatus').textContent = '✓ Selected: ' + selectedActor.name;
+          if (!$('deckName').value.trim()) $('deckName').value = selectedActor.name;
+          if (!$('artistName').value.trim()) $('artistName').value = selectedActor.name;
+          $('fetchBtn').disabled = false;
+          $('fetchBtn').textContent = 'Fetch full filmography';
+        });
+      });
+    } catch(e) {
+      $('actorSearchStatus').textContent = 'Failed: ' + e.message;
+    }
+  });
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function fetchViaTMDB() {
+  if (!selectedActor) { $('fetchStatus').textContent = 'Search and pick an actor first (above).'; return; }
+  if (!tmdbKey) { $('fetchStatus').textContent = 'Connect TMDB in step 1 first.'; return; }
+  const actor = selectedActor;
+  $('fetchStatus').textContent = 'Fetching filmography for "' + actor.name + '"...';
+  $('fetchBtn').disabled = true;
+  try {
+    const data = await tmdbGet('/person/' + actor.id + '/movie_credits');
+    const cast = Array.isArray(data.cast) ? data.cast.slice() : [];
+    const albumMode = document.querySelector('input[name=movieAlbumMode]:checked').value; // decade|year|none
+    const excludeUnreleased = $('excludeUnreleased').checked;
+    const excludeUncredited = $('excludeUncredited').checked;
+    const dedupe = $('dedupeTracks').checked;
+    const now = new Date();
+    const seenTitle = new Set();
+    tracksData = [];
+    // Sort by release date descending for a nicer default order
+    cast.sort((a, b) => (b.release_date || '').localeCompare(a.release_date || ''));
+    for (const m of cast) {
+      const releaseDate = m.release_date || '';
+      if (excludeUnreleased) {
+        if (!releaseDate) continue;
+        if (new Date(releaseDate) > now) continue;
+      }
+      const character = (m.character || '').trim();
+      if (excludeUncredited) {
+        // TMDB stamps a lot of variations for cameos / voice / bit parts
+        const chLc = character.toLowerCase();
+        if (!character) continue;
+        if (/^(self|himself|herself|themself|narrator|voice)/i.test(chLc)) continue;
+        if (/\(uncredited\)/i.test(chLc)) continue;
+        if (/\(voice\)/i.test(chLc)) continue;
+      }
+      if (dedupe) {
+        const key = (m.title || m.original_title || '').toLowerCase() + '||' + character.toLowerCase();
+        if (seenTitle.has(key)) continue;
+        seenTitle.add(key);
+      }
+      const year = releaseDate ? releaseDate.slice(0, 4) : '';
+      let album = 'Filmography';
+      if (albumMode === 'year' && year) album = year;
+      else if (albumMode === 'decade' && year) {
+        const y = parseInt(year, 10);
+        if (!isNaN(y)) album = (Math.floor(y / 10) * 10) + 's';
+      }
+      // Normalize character label — TMDB uses "Character Name / Alter Ego" style
+      // sometimes; keep the primary name for the member field but preserve
+      // full text in description if useful.
+      const memberName = character.split(' / ')[0].trim() || 'Untitled Role';
+      const posterUrl = tmdbImg(m.poster_path, 'w500');
+      const rating = typeof m.vote_average === 'number' && m.vote_count >= 20 ? m.vote_average : null;
+      const score = rating !== null ? Math.round(rating * 10) : null;
+      const summary = (m.overview || '').trim() || null;
+      tracksData.push({
+        id: 'tmdb_' + m.id + (character ? '_' + slug(character).slice(0, 24) : ''),
+        name: m.title || m.original_title || 'Untitled Movie',
+        album: album,
+        imageUrl: posterUrl,
+        externalUrl: 'https://www.themoviedb.org/movie/' + m.id,
+        score: score,
+        description: summary,
+        member: memberName        // this drives the character-face bubble on the card
+      });
+    }
+    // Cache full role list for the "Auto-fill characters" button in the members panel
+    lastActorCredits = cast;
+    renderTracks();
+    const withPoster = tracksData.filter(t => t.imageUrl).length;
+    const noPoster = tracksData.length - withPoster;
+    let msg = tracksData.length + ' movie(s) pulled from ' + actor.name + '\'s filmography.';
+    if (noPoster > 0) msg += ' (' + noPoster + ' had no poster on TMDB — cards for those will show a gradient background instead.)';
+    $('fetchStatus').textContent = msg;
+    $('mintBtn').disabled = false;
+    $('mintAllBtn').disabled = false;
+  } catch(e) {
+    $('fetchStatus').textContent = 'Failed: ' + e.message;
+  } finally {
+    $('fetchBtn').disabled = false;
+  }
+}
+
+// Auto-fill the members grid with every character that appeared in the
+// fetched filmography, matching the TVmaze cast-picker flow. Uses the
+// per-movie poster as the fallback member face (since TMDB doesn't have
+// per-character portrait shots at the movie level — for canonical
+// character face art you'd search separately).
+async function fetchMovieCharacters() {
+  if (!lastActorCredits || lastActorCredits.length === 0) {
+    $('memberStatus').textContent = 'Fetch the filmography first (step 3).';
+    return;
+  }
+  // Dedupe by character name (first occurrence wins for face)
+  const byChar = new Map();
+  for (const m of lastActorCredits) {
+    const character = (m.character || '').split(' / ')[0].trim();
+    if (!character) continue;
+    if (byChar.has(character)) continue;
+    byChar.set(character, {
+      character,
+      face: tmdbImg(m.poster_path, 'w300'),   // fallback: movie poster crop
+      movieTitle: m.title || m.original_title || '',
+      year: (m.release_date || '').slice(0, 4)
+    });
+  }
+  const list = Array.from(byChar.values());
+  if (list.length === 0) {
+    $('memberStatus').textContent = 'No named characters in this filmography.';
+    return;
+  }
+  $('castPicker').style.display = 'block';
+  $('castPickerList').innerHTML = list.map((c, i) => {
+    return '<label class="castPickRow" style="display:flex;gap:10px;align-items:center;padding:6px;border-bottom:1px solid #334155;">'
+      + '<input type="checkbox" class="castPickBox" data-idx="' + i + '" checked>'
+      + (c.face ? '<img src="' + c.face + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">' : '<div style="width:36px;height:36px;background:#334155;border-radius:50%;"></div>')
+      + '<div style="flex:1"><div style="font-weight:600;">' + escapeHtml(c.character) + '</div>'
+      + '<div style="font-size:11px;color:#94a3b8;">' + escapeHtml(c.movieTitle) + (c.year ? ' (' + c.year + ')' : '') + '</div></div>'
+      + '</label>';
+  }).join('');
+  // Store on the picker so the existing add-selected handler can find them
+  $('castPickerList')._movieCharList = list;
+  $('memberStatus').textContent = list.length + ' unique character(s) found — pick which to add as member bubbles.';
+}
+const fetchMovieCharsBtn = document.getElementById('fetchMovieCharactersBtn');
+if (fetchMovieCharsBtn) fetchMovieCharsBtn.addEventListener('click', fetchMovieCharacters);
+
+// v2.7.3.3: Refill missing poster URLs on existing pool entries by
+// re-hitting TMDB. Used when an old exported deck came in with null
+// trackImageUrl (older versions of the builder didn't preserve URLs
+// through export/import), OR when TMDB has updated its posters since
+// the deck was originally minted. Only touches entries whose
+// spotifyTrackId or id starts with "tmdb_" — safe no-op for music/TV
+// pool entries.
+async function refillArtFromTMDB() {
+  if (!tmdbKey) { $('mintStatus').textContent = 'Connect TMDB in step 1 first.'; return; }
+  const needsArt = pool.filter(p => !p.trackImageUrl && (
+    String(p.spotifyTrackId || '').startsWith('tmdb_') ||
+    String(p.id || '').startsWith('tmdb_')
+  ));
+  if (needsArt.length === 0) {
+    $('mintStatus').textContent = 'No TMDB-tagged pool entries are missing artwork.';
+    return;
+  }
+  if (!confirm('Refill artwork for ' + needsArt.length + ' movie(s)? This will call TMDB (either by movie id or by title search).')) return;
+  document.getElementById('refreshArtBtn').disabled = true;
+  $('mintStatus').textContent = 'Refilling from TMDB...';
+
+  // v2.7.3.9: two-phase refill. Phase A: use the actor selection if
+  // present to pull full filmography with posters — that's a single
+  // API call and covers most pool entries by title match. Phase B: for
+  // anything left, try numeric-id lookup (works for new-style ids).
+  const titleToUrl = new Map();
+
+  // Phase A — use selectedActor's filmography as the source of truth
+  if (selectedActor) {
+    try {
+      const data = await tmdbGet('/person/' + selectedActor.id + '/movie_credits');
+      const cast = Array.isArray(data.cast) ? data.cast : [];
+      for (const m of cast) {
+        if (!m.poster_path) continue;
+        const title = (m.title || m.original_title || '').trim().toLowerCase();
+        if (title && !titleToUrl.has(title)) {
+          titleToUrl.set(title, tmdbImg(m.poster_path, 'w500'));
+        }
+      }
+      $('mintStatus').textContent = 'Phase A: got ' + titleToUrl.size + ' posters from ' + selectedActor.name + '\'s filmography.';
+    } catch(e) {
+      console.warn('[refill] Phase A failed:', e);
+    }
+  }
+
+  // Phase B — for entries still missing after phase A's title match,
+  // try direct id lookup (only works for numeric TMDB ids)
+  const idExtract = p => {
+    const raw = String(p.id || p.spotifyTrackId || '');
+    if (!raw.startsWith('tmdb_')) return null;
+    const rest = raw.slice(5);
+    const firstUnderscore = rest.indexOf('_');
+    const idPart = firstUnderscore === -1 ? rest : rest.slice(0, firstUnderscore);
+    if (!/^\d+$/.test(idPart)) return null;
+    return idPart;
+  };
+
+  let filled = 0, stillMissing = 0;
+  for (const p of needsArt) {
+    // Try title match first
+    const title = (p.track || '').trim().toLowerCase();
+    if (title && titleToUrl.has(title)) {
+      p.trackImageUrl = titleToUrl.get(title);
+      if (!p._fallbackFace) p._fallbackFace = p.trackImageUrl;
+      await idbPut('pool', p);
+      filled++;
+      continue;
+    }
+    // Fallback to numeric id lookup
+    const mid = idExtract(p);
+    if (mid) {
+      try {
+        const data = await tmdbGet('/movie/' + mid);
+        if (data && data.poster_path) {
+          p.trackImageUrl = tmdbImg(data.poster_path, 'w500');
+          if (!p._fallbackFace) p._fallbackFace = p.trackImageUrl;
+          await idbPut('pool', p);
+          filled++;
+          continue;
+        }
+      } catch(_) {}
+    }
+    stillMissing++;
+  }
+  renderPoolCount();
+  document.getElementById('refreshArtBtn').disabled = false;
+  let msg = 'Refilled ' + filled + ' / ' + needsArt.length + ' poster URL(s).';
+  if (stillMissing > 0) msg += ' ' + stillMissing + ' still missing — try re-fetching the filmography (step 3) with the actor selected, then click this button again.';
+  else msg += ' Re-publish to push the updated URLs.';
+  $('mintStatus').textContent = msg;
+}
+const refreshArtBtn = document.getElementById('refreshArtBtn');
+if (refreshArtBtn) refreshArtBtn.addEventListener('click', refillArtFromTMDB);
+
+
+
+async function fetchViaItunes(){
+  const artist = $('artistName').value.trim();
+  if(!artist) return;
+  $('fetchStatus').textContent = 'Searching iTunes for artist...';
+  $('fetchBtn').disabled = true;
+  try{
+    const search = await jsonp('https://itunes.apple.com/search?term=' + encodeURIComponent(artist) + '&entity=musicArtist&limit=1');
+    const artistObj = search.results && search.results[0];
+    if(!artistObj) throw new Error('artist not found on iTunes');
+    if(!$('deckName').value.trim()) $('deckName').value = artistObj.artistName;
+    $('fetchStatus').textContent = 'Found ' + artistObj.artistName + '. Fetching albums...';
+    await sleep(3200); // iTunes documents ~20 calls/min — stay well under that
+
+    const albumLookup = await jsonp('https://itunes.apple.com/lookup?id=' + artistObj.artistId + '&entity=album&limit=200');
+    const albums = (albumLookup.results || []).filter(r => r.wrapperType === 'collection');
+    const seenAlbum = new Set();
+    const uniqueAlbums = albums.filter(a => { const k=a.collectionName.toLowerCase(); if(seenAlbum.has(k)) return false; seenAlbum.add(k); return true; });
+
+    tracksData = [];
+    const seenTrack = new Set();
+    const dedupe = $('dedupeTracks').checked;
+    const excludeInst = $('excludeInstrumental').checked;
+    const instRegex = /\b(instrumental|inst\.?|karaoke|a\s?cappella|beat\s?only|off\s?vocal)\b/i;
+    let done = 0;
+    for(const album of uniqueAlbums){
+      await sleep(3200);
+      $('fetchStatus').textContent = 'Fetching tracks... ' + done + ' / ' + uniqueAlbums.length + ' releases (' + tracksData.length + ' tracks so far)';
+      try{
+        const trackLookup = await jsonp('https://itunes.apple.com/lookup?id=' + album.collectionId + '&entity=song&limit=200');
+        const artworkUrl = album.artworkUrl100 ? album.artworkUrl100.replace('100x100bb', '600x600bb') : null;
+        (trackLookup.results || []).filter(r => r.wrapperType === 'track').forEach(t => {
+          if(excludeInst && instRegex.test(t.trackName)) return;
+          const key = t.trackName.toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim();
+          if(dedupe){ if(seenTrack.has(key)) return; seenTrack.add(key); }
+          tracksData.push({
+            id: 'itunes_' + t.trackId, name: t.trackName, album: album.collectionName,
+            imageUrl: artworkUrl, previewUrl: t.previewUrl || null
+          });
+        });
+      }catch(e){ /* skip a release that fails, keep going */ }
+      done++;
+    }
+    renderTracks();
+    $('fetchStatus').textContent = tracksData.length + ' tracks pulled from ' + uniqueAlbums.length + ' releases (via iTunes).';
+    $('mintBtn').disabled = false;
+    $('mintAllBtn').disabled = false;
+  }catch(e){ $('fetchStatus').textContent = 'Failed: ' + e.message; }
+  finally{ $('fetchBtn').disabled = false; }
+}
+
+async function fetchViaSpotify(){
+  const artist = $('artistName').value.trim();
+  if(!artist) return;
+  $('fetchStatus').textContent = 'Searching artist...';
+  $('fetchBtn').disabled = true;
+  try{
+    const search = await spotifyGet('https://api.spotify.com/v1/search?q=' + encodeURIComponent(artist) + '&type=artist&limit=1');
+    const artistObj = search.artists.items[0];
+    if(!artistObj) throw new Error('artist not found');
+    $('fetchStatus').textContent = 'Found ' + artistObj.name + '. Fetching full discography...';
+    if(!$('deckName').value.trim()) $('deckName').value = artistObj.name;
+
+    const groups = [];
+    if($('incAlbum').checked) groups.push('album');
+    if($('incSingle').checked) groups.push('single');
+    if($('incCompilation').checked) groups.push('compilation');
+    if($('incAppearsOn').checked) groups.push('appears_on');
+    if(groups.length===0) groups.push('album','single');
+
+    let albums = [];
+    let url = 'https://api.spotify.com/v1/artists/' + artistObj.id + '/albums?include_groups=' + groups.join(',') + '&limit=10&market=US';
+    while(url){
+      const page = await spotifyGet(url, msg => $('fetchStatus').textContent = msg);
+      albums = albums.concat(page.items); url = page.next;
+      $('fetchStatus').textContent = 'Fetching releases... ' + albums.length + ' found so far.';
+      if(url) await sleep(250);
+    }
+
+    const seenAlbum = new Set();
+    albums = albums.filter(a => { const k=a.name.toLowerCase(); if(seenAlbum.has(k)) return false; seenAlbum.add(k); return true; });
+
+    $('fetchStatus').textContent = 'Fetching tracks from ' + albums.length + ' releases...';
+    tracksData = [];
+    const seenTrack = new Set();
+    const dedupe = $('dedupeTracks').checked;
+    const excludeInst = $('excludeInstrumental').checked;
+    const instRegex = /\b(instrumental|inst\.?|karaoke|a\s?cappella|beat\s?only|off\s?vocal)\b/i;
+    let done = 0;
+    for(const album of albums){
+      const imageUrl = (album.images && album.images[0]) ? album.images[0].url : null;
+      try{
+        const tr = await spotifyGet('https://api.spotify.com/v1/albums/' + album.id + '/tracks?limit=50', msg => $('fetchStatus').textContent = msg);
+        tr.items.forEach(t => {
+          if(excludeInst && instRegex.test(t.name)) return;
+          const key = t.name.toLowerCase().replace(/\s*\(.*?\)\s*/g,'').trim();
+          if(dedupe){ if(seenTrack.has(key)) return; seenTrack.add(key); }
+          tracksData.push({id:t.id, name:t.name, album:album.name, imageUrl});
+        });
+      }catch(e){ /* skip a release that fails, keep going */ }
+      done++;
+      $('fetchStatus').textContent = 'Fetching tracks... ' + done + ' / ' + albums.length + ' releases (' + tracksData.length + ' tracks so far)';
+      await sleep(200);
+    }
+    renderTracks();
+    $('fetchStatus').textContent = tracksData.length + ' tracks pulled from ' + albums.length + ' releases.';
+    // v2.1: batch-enrich with Spotify popularity so Card Forge can
+    // pick the most popular track per album when the player caps
+    // an album. The /v1/albums/{id}/tracks endpoint doesn't include
+    // popularity; only /v1/tracks?ids= does. We batch 50 at a time
+    // (Spotify's max), skip iTunes/tvmaze IDs, and set score=null
+    // on tracks we can't enrich (falls back to first-N ordering).
+    await enrichSpotifyPopularity(tracksData);
+    $('mintBtn').disabled = false;
+    $('mintAllBtn').disabled = false;
+  }catch(e){ $('fetchStatus').textContent = 'Failed: ' + e.message; }
+  finally{ $('fetchBtn').disabled = false; }
+}
+
+// Feb 2026: `popularity` was removed from track objects AND the batch
+// GET /v1/tracks?ids= endpoint was removed outright. There is nothing
+// left to enrich, so this is now a no-op that leaves score=null and
+// lets the 'top N per album' selector fall back to first-N ordering.
+const SPOTIFY_POPULARITY_AVAILABLE = false;
+async function enrichSpotifyPopularity(tracks){
+  if(!SPOTIFY_POPULARITY_AVAILABLE){
+    $('fetchStatus').textContent = tracks.length + ' tracks \u00b7 popularity scores no longer available from Spotify (API change, Feb 2026).';
+    return;
+  }
+  const spotifyIds = tracks.filter(t => t.id && !String(t.id).startsWith('itunes_') && !String(t.id).startsWith('tvmaze_')).map(t => t.id);
+  if(spotifyIds.length === 0) return;
+  const byId = {};
+  const total = spotifyIds.length;
+  let done = 0;
+  for(let i = 0; i < spotifyIds.length; i += 50){
+    const chunk = spotifyIds.slice(i, i + 50);
+    try {
+      const res = await spotifyGet('https://api.spotify.com/v1/tracks?ids=' + chunk.join(','));
+      (res.tracks || []).forEach(t => { if(t && t.id) byId[t.id] = t.popularity; });
+    } catch(e) { /* Spotify sometimes 429s on giant fetches; keep going */ }
+    done += chunk.length;
+    $('fetchStatus').textContent = 'Enriching with popularity... ' + done + ' / ' + total + ' tracks';
+    await sleep(180);
+  }
+  tracks.forEach(t => {
+    if(t.id in byId) t.score = byId[t.id];   // 0-100 already
+  });
+  const enriched = Object.keys(byId).length;
+  $('fetchStatus').textContent = tracks.length + ' tracks · ' + enriched + ' with popularity scores.';
+}
+function renderTracks(){
+  $('tracksWrap').style.display = 'block';
+  const list = $('trackList');
+  list.innerHTML = '';
+  // v2.7: detect group type — if any album starts with "Season " treat
+  // groups as seasons (TVmaze), otherwise as albums. Just cosmetic — the
+  // grouping logic uses t.album either way.
+  const isShow = tracksData.some(t => typeof t.album === 'string' && t.album.startsWith('Season '));
+  const groupLabelEl = $('topGroupLabel');
+  if (groupLabelEl) groupLabelEl.textContent = isShow ? 'season' : 'album';
+  const scoredCount = tracksData.filter(t => typeof t.score === 'number').length;
+  const statusEl = $('topRatedStatus');
+  if (statusEl) {
+    statusEl.textContent = scoredCount === 0
+      ? 'no rating data (fetch a fresh Spotify/TVmaze source to enable)'
+      : (scoredCount + ' / ' + tracksData.length + ' tracks have ratings');
+  }
+  tracksData.forEach((t,i) => {
+    const row = document.createElement('div');
+    row.className = 'track';
+    const scoreBadge = typeof t.score === 'number'
+      ? '<span class="score-badge" data-i="' + i + '" style="margin-left:auto;padding:2px 6px;background:#1e293b;border:1px solid #334155;border-radius:10px;font-size:10px;color:#c084fc;">⭐ ' + t.score + '</span>'
+      : '';
+    row.innerHTML = `
+      <input type="checkbox" class="tchk" data-i="${i}" checked>
+      ${t.imageUrl ? `<img src="${t.imageUrl}">` : '<div style="width:34px;height:34px;background:#222;border-radius:5px;"></div>'}
+      <div class="meta"><div class="t">${escapeHtml(t.name)}</div><div class="a">${escapeHtml(t.album)}</div></div>
+      ${scoreBadge}
+    `;
+    list.appendChild(row);
+  });
+  updateTrackCount();
+  list.querySelectorAll('.tchk').forEach(c => c.addEventListener('change', updateTrackCount));
+}
+function updateTrackCount(){
+  const n = document.querySelectorAll('.tchk:checked').length;
+  $('trackCount').textContent = n + ' / ' + tracksData.length + ' selected';
+}
+$('selectAll').addEventListener('click', e => {e.preventDefault(); document.querySelectorAll('.tchk').forEach(c=>c.checked=true); updateTrackCount();});
+$('selectNone').addEventListener('click', e => {e.preventDefault(); document.querySelectorAll('.tchk').forEach(c=>c.checked=false); updateTrackCount();});
+
+// v2.7: Auto-select the top N per album/season by score. Groups tracks
+// by album name, sorts each group by score desc (unrated tracks sink),
+// checks only the top N, unchecks the rest. If no tracks in a group
+// have scores, all in that group get unchecked.
+$('applyTopRated').addEventListener('click', function(e) {
+  e.preventDefault();
+  const nInput = $('topPerGroup');
+  const n = Math.max(1, parseInt(nInput.value, 10) || 1);
+  const groups = {};
+  tracksData.forEach((t, i) => {
+    const g = t.album || '_';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push({ idx: i, score: typeof t.score === 'number' ? t.score : -1 });
+  });
+  const keepSet = new Set();
+  for (const g in groups) {
+    const arr = groups[g].slice();
+    // unrated → score -1 → sinks to bottom
+    arr.sort((a, b) => b.score - a.score);
+    // Only pick from tracks that actually have a score
+    for (let i = 0; i < Math.min(n, arr.length); i++) {
+      if (arr[i].score >= 0) keepSet.add(arr[i].idx);
+    }
+  }
+  // Apply to checkboxes
+  document.querySelectorAll('.tchk').forEach(c => {
+    const i = parseInt(c.dataset.i, 10);
+    c.checked = keepSet.has(i);
+  });
+  updateTrackCount();
+  const statusEl = $('topRatedStatus');
+  if (statusEl) {
+    const groupCount = Object.keys(groups).length;
+    statusEl.textContent = 'selected ' + keepSet.size + ' tracks across ' + groupCount + ' ' + ($('topGroupLabel').textContent) + 's';
+  }
+});
+
+// ---------------- pool (deck contents) ----------------
+async function mintPool(selectedIdx, mode){
+  const contentType = document.querySelector('input[name=contentType]:checked').value;
+  const isMovie = contentType === 'movie';
+  const activeMembers = members.filter(m => m.include!==false && getMemberImgs(m).length > 0);
+  // v2.7.3: movies mode does NOT require the members grid. Each movie
+  // already carries the character name it should be paired with (from
+  // TMDB), and if the user hasn't uploaded a portrait for that character
+  // yet we fall back to the movie poster as the face bubble. This means
+  // "search actor → fetch filmography → publish" is a valid 3-click
+  // flow with no manual member setup.
+  if (!isMovie && activeMembers.length===0){ $('mintStatus').textContent='Upload at least one member face bubble.'; return; }
+  if(selectedIdx.length===0){ $('mintStatus').textContent='No tracks to add.'; return; }
+  $('mintBtn').disabled = true; $('mintAllBtn').disabled = true;
+
+  // build a lookup of what's already in the pool so re-minting after a new release doesn't duplicate old entries
+  // v2.7.3: for movies mode, dedupe key uses the character name since
+  // member.id doesn't exist in the auto-created case
+  const existingKeys = new Set(pool.map(p => {
+    const memKey = p.memberId || ('char:' + (p.memberName || '').toLowerCase());
+    return (p.spotifyTrackId || p.track.toLowerCase()) + '::' + memKey;
+  }));
+
+  let made=0, skipped=0;
+  const toCheck = selectedIdx.length * (isMovie ? 1 : (mode==='all' ? activeMembers.length : 1));
+  const newEntries = [];
+  for(const idx of selectedIdx){
+    const track = tracksData[idx];
+
+    if (isMovie) {
+      // v2.7.3: movie mint path — use character name straight from the
+      // track, look up a user-uploaded portrait if the member grid has
+      // a matching name, otherwise leave face empty and let publish
+      // fall back to the movie poster.
+      const character = (track.member || '').trim();
+      if (!character) { skipped++; continue; }
+      const matchingMember = activeMembers.find(m =>
+        (m.name || '').trim().toLowerCase() === character.toLowerCase());
+      const memberIdVal = matchingMember ? matchingMember.id : ('char:' + character.toLowerCase());
+      const memKey = matchingMember ? matchingMember.id : ('char:' + character.toLowerCase());
+      const key = (track.id || track.name.toLowerCase()) + '::' + memKey;
+      if (existingKeys.has(key)) { skipped++; continue; }
+      existingKeys.add(key);
+      const entry = {
+        id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        track: track.name,
+        album: track.album,
+        trackImageUrl: track.imageUrl,
+        spotifyTrackId: null,
+        externalUrl: track.externalUrl || null,
+        previewUrl: null,
+        score: typeof track.score === 'number' ? track.score : null,
+        description: track.description || null,
+        memberId: memberIdVal,
+        memberName: character,     // ← the CHARACTER NAME, not the grid member's name
+        // v2.7.3: remember the poster URL as the fallback character
+        // face — used at publish time if no user-uploaded portrait
+        // exists for this character.
+        _fallbackFace: track.imageUrl || null
+      };
+      newEntries.push(entry);
+      made++;
+      if ((made + skipped) % 200 === 0) $('mintStatus').textContent = 'Checking ' + (made + skipped) + ' / ' + toCheck + '...';
+      continue;
+    }
+
+    // Music / TV path — unchanged
+    const memberList = mode==='all' ? activeMembers : [activeMembers[Math.floor(Math.random()*activeMembers.length)]];
+    for(const member of memberList){
+      const key = (track.id || track.name.toLowerCase()) + '::' + member.id;
+      if(existingKeys.has(key)){ skipped++; continue; }
+      existingKeys.add(key);
+      const entry = {
+        id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+        track:track.name, album:track.album, trackImageUrl:track.imageUrl,
+        spotifyTrackId:track.id && !String(track.id).startsWith('itunes_') && !String(track.id).startsWith('tvmaze_') && !String(track.id).startsWith('tmdb_') ? track.id : null,
+        externalUrl: track.externalUrl || null,
+        previewUrl: track.previewUrl || null,
+        score: typeof track.score === 'number' ? track.score : null,
+        description: track.description || null,
+        memberId:member.id, memberName:member.name
+      };
+      newEntries.push(entry);
+      made++;
+      if((made+skipped) % 200 === 0) $('mintStatus').textContent = 'Checking ' + (made+skipped) + ' / ' + toCheck + '...';
+    }
+  }
+  pool = pool.concat(newEntries);
+  for(const entry of newEntries) await idbPut('pool', entry);
+  renderPoolCount();
+  // v2.7.3: movie mode also reports how many unique characters were minted
+  if (isMovie) {
+    const uniqueChars = new Set(newEntries.map(e => e.memberName));
+    const withPortrait = newEntries.filter(e =>
+      activeMembers.some(m => (m.name || '').trim().toLowerCase() === (e.memberName || '').trim().toLowerCase())
+    ).length;
+    $('mintStatus').textContent = 'Added ' + made + ' movie(s) covering ' + uniqueChars.size + ' unique character(s)' +
+      (withPortrait > 0 ? ', ' + withPortrait + ' with uploaded portraits (rest use movie posters as face bubbles)' : '') +
+      (skipped ? ' (skipped ' + skipped + ' already in this deck)' : '') + '. Deck now has ' + pool.length + ' total.';
+  } else {
+    $('mintStatus').textContent = 'Added ' + made + ' new entries' + (skipped ? ' (skipped ' + skipped + ' already in this deck)' : '') + '. Deck now has ' + pool.length + ' total.';
+  }
+  $('mintBtn').disabled = false; $('mintAllBtn').disabled = false;
+}
+$('mintBtn').addEventListener('click', () => {
+  const selectedIdx = Array.from(document.querySelectorAll('.tchk:checked')).map(c=>parseInt(c.dataset.i));
+  const mode = document.querySelector('input[name=poolMode]:checked').value;
+  mintPool(selectedIdx, mode);
+});
+$('mintAllBtn').addEventListener('click', () => {
+  const allIdx = tracksData.map((_, i) => i);
+  mintPool(allIdx, 'all');
+});
+$('clearPoolBtn').addEventListener('click', async () => {
+  if(!confirm('Clear all entries from this deck?')) return;
+  pool = [];
+  await idbClear('pool');
+  renderPoolCount();
+});
+function renderPoolCount(){ $('poolCount').textContent = pool.length + ' entries'; }
+
+$('previewBtn').addEventListener('click', async () => {
+  if(pool.length===0){ alert('Add some tracks to the deck first.'); return; }
+  $('previewWrap').style.display = 'block';
+  $('previewImg').src = '';
+  const entry = pool[Math.floor(Math.random()*pool.length)];
+  // v2.7.3.7: split photo source from name source so actor decks work
+  // right. entry.memberName is the CHARACTER (e.g. "Erik Killmonger");
+  // entry.memberId points at the grid member with the face photo (e.g.
+  // Michael B. Jordan). We want the character's NAME as the label AND
+  // the actor's FACE as the bubble. Old code used the grid member's
+  // name too, so preview said "MICHAEL B. JORDAN" not "ERIK KILLMONGER".
+  //
+  // Priority for the face photo:
+  //   1. Grid member whose name matches the character exactly (specific
+  //      portrait for that character, if the user added one)
+  //   2. Grid member referenced by entry.memberId (usually the actor)
+  //   3. First grid member with any photos (last-ditch actor face)
+  //   4. Movie poster from _fallbackFace / trackImageUrl
+  const characterName = (entry.memberName || '').trim();
+  const characterMatch = characterName
+    ? members.find(m => (m.name || '').trim().toLowerCase() === characterName.toLowerCase() && ((m.imgs && m.imgs.length) || m.img))
+    : null;
+  const idMatch = members.find(m => m.id === entry.memberId && ((m.imgs && m.imgs.length) || m.img));
+  const anyWithFace = members.find(m => (m.imgs && m.imgs.length) || m.img);
+  const faceSource = characterMatch || idMatch || anyWithFace || null;
+  const previewMember = {
+    name: characterName || (faceSource && faceSource.name) || (idMatch && idMatch.name) || '',
+    img: faceSource ? faceSource.img : null,
+    imgs: faceSource ? faceSource.imgs : []
+  };
+  const previewTrack = {
+    name: entry.track,
+    album: entry.album,
+    imageUrl: entry.trackImageUrl || entry._fallbackFace || null
+  };
+  const art = await bakeArt(previewTrack, previewMember);
+  $('previewImg').src = art;
+});
+
+// ---------------- deck new/load/export ----------------
+$('newDeckBtn').addEventListener('click', async () => {
+  if(!confirm('Start a new deck? This clears the current members and pool from the builder (already-exported deck files are unaffected).')) return;
+  members = []; pool = []; deckId = null;
+  await idbClear('members'); await idbClear('pool');
+  $('deckName').value = '';
+  $('artistName').value = '';
+  tracksData = [];
+  $('tracksWrap').style.display = 'none';
+  renderMembers(); renderPoolCount(); updateDeckIdStatus();
+  $('deckStatus').textContent = 'New deck started.';
+});
+$('loadDeckBtn').addEventListener('click', () => $('loadDeckFile').click());
+$('loadDeckFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if(!file) return;
+  const text = await file.text();
+  let payload;
+  try{ payload = JSON.parse(text); }catch(err){ alert('Invalid deck file.'); return; }
+  if(!confirm('Load "' + (payload.artistName||'this deck') + '"? This replaces the current members and pool in the builder.')) return;
+  await idbClear('members'); await idbClear('pool');
+  members = payload.members || []; pool = payload.pool || []; deckId = payload.deckId || null;
+
+  // v2.7.3.4: same normalization + auto-detect as the importFromJsonBtn
+  // handler above. This is the LEGACY "Load deck" button — same code
+  // path so the shape fixes apply here too.
+  for (const m of members) {
+    if (!Array.isArray(m.imgs)) m.imgs = [];
+    m.imgs = m.imgs.map(entry => {
+      if (typeof entry === 'string') return entry;
+      if (entry && typeof entry === 'object') {
+        if (typeof entry.src === 'string') return entry.src;
+        if (typeof entry.url === 'string') return entry.url;
+        if (typeof entry.dataUrl === 'string') return entry.dataUrl;
+      }
+      return null;
+    }).filter(Boolean);
+    if (m.imgs.length === 0 && typeof m.img === 'string' && m.img) m.imgs = [m.img];
+    if (m.imgs.length > 0) m.img = m.imgs[0];
+  }
+  for (const p of pool) {
+    if (!p.description && typeof p.summary === 'string' && p.summary) p.description = p.summary;
+  }
+  // v2.7.3.5: actor-deck detection without polluting the members grid.
+  // Just switches to movies mode and seeds _fallbackFace on pool
+  // entries. Publish handles the actor-face-for-all-characters logic.
+  const uniqueCharNames = new Set(pool.map(p => (p.memberName || '').trim()).filter(Boolean));
+  const hasTmdbIds = pool.some(p =>
+    String(p.spotifyTrackId || '').startsWith('tmdb_') ||
+    String(p.id || '').startsWith('tmdb_')
+  );
+  const looksLikeActorDeck = hasTmdbIds || (uniqueCharNames.size > members.length + 2);
+  if (looksLikeActorDeck) {
+    const movieRadio = document.querySelector('input[name=contentType][value=movie]');
+    if (movieRadio && !movieRadio.checked) {
+      movieRadio.checked = true;
+      movieRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    for (const p of pool) {
+      if (!p._fallbackFace && p.trackImageUrl) p._fallbackFace = p.trackImageUrl;
+    }
+  }
+  const autoAddedMembers = 0;
+
+  for(const m of members) await idbPut('members', m);
+  for(const p of pool) await idbPut('pool', p);
+  await setMeta('deckId', deckId);
+  $('deckName').value = payload.artistName || '';
+  renderMembers(); renderPoolCount(); updateDeckIdStatus();
+
+  let msg = 'Loaded deck: ' + (payload.artistName || '');
+  if (looksLikeActorDeck) msg += ' [actor deck]';
+  msg += ' — ' + pool.length + ' entries, ' + members.length + ' members' + (autoAddedMembers > 0 ? ' (' + autoAddedMembers + ' auto-added)' : '') + '.';
+  const missingArt = pool.filter(p => !p.trackImageUrl).length;
+  if (missingArt > 0) msg += ' 📸 ' + missingArt + ' missing poster URLs — refill from TMDB or re-fetch.';
+  $('deckStatus').textContent = msg;
+  console.log('[LOAD-DECK v2.7.3.4]', {
+    totalMembers: members.length,
+    autoAddedMembers,
+    poolSize: pool.length,
+    missingArt,
+    looksLikeActorDeck,
+    firstFewMemberNames: members.slice(0, 6).map(m => m.name)
+  });
+  $('loadDeckFile').value = '';
+});
+let cloudDeckCandidates = [];
+$('loadFromCloudBtn').addEventListener('click', async () => {
+  $('deckStatus').textContent = 'Fetching published decks…';
+  try {
+    cloudDeckCandidates = await CloudStore.getAll('decks');
+    // Filter out the _meta node — it's an internal marker, not a real deck.
+    cloudDeckCandidates = cloudDeckCandidates.filter(d => d && d.id !== '_meta' && (d.deckName || d.artistName));
+    // Normalize: some legacy decks may use `artistName`; new ones use `deckName`
+    cloudDeckCandidates.forEach(d => { d.deckName = d.deckName || d.artistName || 'untitled'; });
+    if(cloudDeckCandidates.length === 0) { $('deckStatus').textContent = 'No decks published yet.'; return; }
+    renderCloudDeckPicker();
+    $('deckStatus').textContent = cloudDeckCandidates.length + ' deck(s) found — click any to load for editing.';
+  } catch(e) {
+    $('deckStatus').textContent = 'Failed to fetch: ' + (e.message || e);
+  }
+});
+
+function renderCloudDeckPicker(){
+  const wrap = $('cloudDeckPicker');
+  wrap.innerHTML = '';
+  cloudDeckCandidates.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'showPickItem';
+    el.style.alignItems = 'center';
+    const tCount = (d.trackCount != null) ? d.trackCount : ((d.tracks && d.tracks.length) || 0);
+    const meta = tCount + ' tracks · publisher: ' + (d.publishedBy || '?') + ' · id: ' + (d.deckId || d.id);
+    el.innerHTML = `
+      <div class="spInfo" style="cursor:pointer;">
+        <div class="spTitle">${escapeHtml(d.deckName)}</div>
+        <div class="spMeta">${escapeHtml(meta)}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex:none;">
+        <button class="danger small" data-act="delete" data-i="${i}" type="button">🗑️ Delete</button>
+      </div>
+    `;
+    el.querySelector('.spInfo').addEventListener('click', () => loadDeckFromCloud(i));
+    el.querySelector('[data-act="delete"]').addEventListener('click', e => { e.stopPropagation(); deleteCloudDeck(i); });
+    wrap.appendChild(el);
+  });
+  wrap.style.display = 'block';
+}
+
+async function deleteCloudDeck(i){
+  const d = cloudDeckCandidates[i];
+  const typed = prompt('This permanently deletes "' + d.deckName + '" (id: ' + (d.id || d.deckId) + ') from Persona City. Type the deck name exactly to confirm:');
+  if(typed !== d.deckName) { if(typed !== null) alert('Name didn\'t match — nothing was deleted.'); return; }
+  $('deckStatus').textContent = 'Deleting "' + d.deckName + '"...';
+  try {
+    // Use d.id (the actual Firebase key from getAll) — d.deckId is a
+    // denormalized field that may differ from the key on old data.
+    await CloudStore.del('decks', d.id || d.deckId);
+    $('deckStatus').textContent = 'Deleted "' + d.deckName + '" from Persona City.';
+    cloudDeckCandidates = await CloudStore.getAll('decks');
+    cloudDeckCandidates = cloudDeckCandidates.filter(d => d && d.id !== '_meta' && (d.deckName || d.artistName));
+    renderCloudDeckPicker();
+  } catch(e) {
+    $('deckStatus').textContent = 'Delete failed: ' + (e.message || e);
+  }
+}
+
+async function loadDeckFromCloud(i){
+  const d = cloudDeckCandidates[i];
+  if(!confirm('Load "' + d.deckName + '" for editing? This replaces the current members and pool in the builder.')) return;
+  $('deckStatus').textContent = 'Loading deck...';
+  try {
+    // New schema: everything is inline in the deck object. Reconstruct
+    // the builder's `pool` array from `tracks`.
+    //
+    // v2.7.3.6: RESTORE MEMBER PHOTOS TOO.
+    //
+    // The comment here used to say photos "aren't stored in the published
+    // schema" and hard-set img:null. That was true once, but `memberPhotos`
+    // was added to the publish payload later (see publishDeckBtn) and this
+    // loader was never updated to match — so every deck pulled back from
+    // Firebase for editing came in with blank face bubbles, even though the
+    // photos were sitting right there in the node. Persona City read them
+    // fine, which is why it only ever looked broken in the builder.
+    //
+    // Keys are percent-encoded at publish time (Firebase forbids . # $ / [ ]
+    // in key names), so decode on the way back. Try the decoded name first,
+    // then the raw key, so decks published before the encoding landed still
+    // resolve.
+    const tracks = Array.isArray(d.tracks) ? d.tracks : [];
+    const rawPhotos = (d.memberPhotos && typeof d.memberPhotos === 'object') ? d.memberPhotos : {};
+
+    // name (human-readable) -> [urls]
+    const photosByName = {};
+    for (const k of Object.keys(rawPhotos)) {
+      const arr = Array.isArray(rawPhotos[k]) ? rawPhotos[k].filter(u => typeof u === 'string' && u)
+                : (typeof rawPhotos[k] === 'string' && rawPhotos[k]) ? [rawPhotos[k]]
+                : [];
+      if (!arr.length) continue;
+      let name = k;
+      try { name = decodeURIComponent(k); } catch (e) { /* malformed % — keep raw */ }
+      photosByName[name] = arr;
+      if (name !== k) photosByName[k] = arr;   // also match on the raw key
+    }
+
+    // Members come from the photo map AND the tracks, so a member who has a
+    // face but no track (or vice versa) still shows up in the grid.
+    const uniqueMemberNames = [...new Set([
+      ...tracks.map(t => (t.member || '').trim()),
+      ...Object.keys(photosByName).map(n => n.trim())
+    ].filter(Boolean))];
+
+    let restoredPhotoCount = 0;
+    members = uniqueMemberNames.map(name => {
+      const imgs = photosByName[name] || [];
+      if (imgs.length) restoredPhotoCount += imgs.length;
+      return {
+        id: 'restored_' + slug(name) + '_' + Date.now(),
+        name: name,
+        imgs: imgs.slice(),              // the builder's real photo field
+        img: imgs[0] || null,            // legacy single-image field, kept in sync
+        extraImgs: [],
+        includedInBubbles: true
+      };
+    });
+    pool = tracks.map((t, idx) => ({
+      id: 'restored_' + idx + '_' + Date.now(),
+      track: t.name || 'Unknown Track',
+      album: t.album || 'Unknown Album',
+      // v2.7.3: preserve the URLs from the published deck so re-publish
+      // doesn't clobber existing card art. Previously trackImageUrl was
+      // set to null on load, which meant editing a movie deck and
+      // republishing wiped every poster URL from Firebase. Same for
+      // the preview/external URLs.
+      trackImageUrl: t.trackImageUrl || null,
+      externalUrl: t.externalUrl || null,
+      previewUrl: t.previewUrl || null,
+      spotifyTrackId: t.spotifyTrackId || null,
+      score: typeof t.score === 'number' ? t.score : null,
+      description: t.description || null,
+      memberId: members.find(m => m.name === (t.member || ''))?.id || '',
+      memberName: t.member || ''
+    }));
+    deckId = d.deckId || d.id;
+    await idbClear('members'); await idbClear('pool');
+    for(const m of members) await idbPut('members', m);
+    for(const p of pool) await idbPut('pool', p);
+    await setMeta('deckId', deckId);
+    $('deckName').value = d.deckName;
+    $('cloudDeckPicker').style.display = 'none';
+    renderMembers(); renderPoolCount(); updateDeckIdStatus();
+    const membersWithPhotos = members.filter(m => m.imgs && m.imgs.length).length;
+    $('deckStatus').textContent = '✓ Loaded "' + d.deckName + '" from Firebase (id: ' + deckId +
+      ') — ' + members.length + ' members (' + membersWithPhotos + ' with photos, ' +
+      restoredPhotoCount + ' face' + (restoredPhotoCount === 1 ? '' : 's') + ' restored), ' +
+      pool.length + ' tracks.';
+  } catch(e) {
+    $('deckStatus').textContent = 'Load failed: ' + (e.message || e);
+  }
+}
+$('publishDeckBtn').addEventListener('click', async () => {
+  const artistNameVal = $('deckName').value.trim() || 'untitled-deck';
+  const publisher = CloudStore.publisher();
+  if(!publisher) { $('deckStatus').textContent = '⚠ Set a Publisher name in the sync panel first.'; return; }
+  const isNewDeck = !deckId;
+  if(!deckId) deckId = 'deck_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  $('deckStatus').textContent = 'Publishing to Persona City...';
+  try {
+    // Persona City's card system (module 56) expects each deck as a
+    // SINGLE JSON node with a `tracks` array of {name, album, member,
+    // trackImageUrl}. We derive tracks from the pool, mapping the Deck
+    // Builder's field names to what the card generator uses. Track
+    // image URLs are external CDN URLs (Spotify/iTunes/TVMaze), so
+    // tracks stay small.
+    //
+    // v1.3 fix: member photos live at `member.imgs[]` (array; the old
+    // single-photo `member.img` field gets deleted the moment a new
+    // photo is added via addMemberPhoto). Reading `.img` returned null
+    // for any member with a photo, so cards showed the initials
+    // fallback. Now we prefer imgs[0] and fall back to legacy .img.
+    //
+    // v1.4 payload fix: member photos are DATA URLs (base64 blobs,
+    // 20-80KB each). Duplicating them across every track that
+    // features a member — e.g. all 25 tracks in Usher's deck — bloats
+    // the deck to ~1MB per member and causes Firebase writes to hang.
+    // We now publish member photos ONCE at deck level as a
+    // { memberName → dataUrl } map, and tracks just reference the
+    // member by name. Card generation looks up the photo at pack-open
+    // time from that map. Reduces a 25-track single-member deck from
+    // ~1MB to ~40KB.
+    // v1.5: also pass through the three preview fields the Deck
+    // Builder captures for each pool entry — spotifyTrackId (for the
+    // embedded Spotify player), previewUrl (30-second iTunes audio
+    // preview), externalUrl (fallback link, used mostly for TV/show
+    // decks). Module 56 renders one of these on each card so users
+    // can hear/see the track from inside the card viewer.
+    // v2.7.3.9: preserve the poster URL through the pool → tracks
+    // mapping, with graceful fallback. Order of precedence for each
+    // track's image:
+    //   1. entry.trackImageUrl — the properly-set movie poster
+    //   2. entry._fallbackFace — a stashed backup URL from the pool
+    //      entry itself (usually the poster from an earlier fetch)
+    //   3. null — the card will render on a gradient (no image)
+    // Persona City ONLY sees what we write here, so if we drop the URL
+    // silently, cards show blank art even when the deck builder preview
+    // (which reads from the local pool with its own fallbacks) looks
+    // fine. Merging _fallbackFace into trackImageUrl here keeps the
+    // published deck aligned with what the preview shows.
+    const tracks = pool.map(entry => ({
+      name: entry.track || 'Unknown Track',
+      album: entry.album || 'Unknown Album',
+      member: entry.memberName || '',
+      trackImageUrl: entry.trackImageUrl || entry._fallbackFace || null,
+      spotifyTrackId: entry.spotifyTrackId || null,
+      previewUrl: entry.previewUrl || null,
+      externalUrl: entry.externalUrl || null,
+      // v2.1: popularity/rating score for top-N-by-rating culling
+      score: typeof entry.score === 'number' ? entry.score : null,
+      // v2.5: episode/track description (TVmaze summary etc.)
+      description: entry.description || null
+    }));
+
+    // Warn (in the console) about tracks that publish with no image at
+    // all — they'll show as gradient cards in-game. Not a hard error;
+    // some decks may legitimately not have art.
+    const noArt = tracks.filter(t => !t.trackImageUrl);
+    if (noArt.length > 0) {
+      console.warn('[PUBLISH] ' + noArt.length + '/' + tracks.length +
+        ' track(s) have no trackImageUrl and will render on a gradient. ' +
+        'Sample:', noArt.slice(0, 3).map(t => t.name));
+    }
+
+    // Build member photo map — full ARRAY of photos per unique member
+    // (v2.7.3, previously just imgs[0]). Cards store which slot they
+    // rolled at pack-open time as memberPhotoIndex; module 56's render
+    // path looks up the slot LIVE, so replacing or deleting a photo in
+    // this builder propagates to existing cards on their next view.
+    //
+    // Ordering matters: adding photos to the end is safe (existing
+    // cards keep their slot). Replacing at index N updates every card
+    // baked at that slot. Deleting at index N causes those cards to
+    // fall back to their baked memberImageUrl (never blank). Reordering
+    // does shift cards, so treat this like a lookup table — additive
+    // edits are lossless, structural edits are meaningful.
+    // v2.7.3.8: Firebase disallows . # $ / [ ] in keys. Character names
+    // like "Michael B. Jordan" contain periods, which crash the publish
+    // with `set failed: value argument contains an invalid key`. We
+    // URL-encode just those characters before writing to Firebase.
+    // Percent-encoding produces %2E etc., which are legal keys. Module
+    // 56's read path decodes on lookup so cards can still match by
+    // human-readable name (card.memberName = "Michael B. Jordan"). Also
+    // applied to the tracks[i].member field for consistency (it's a
+    // VALUE, so it's technically legal as-is, but keeping the two in
+    // sync avoids a mismatch class). Actually — no, values are always
+    // legal, only keys are restricted, so we leave track.member alone.
+    function encodeFirebaseKey(k) {
+      return String(k).replace(/[.#$/\[\]]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+    }
+
+    const memberPhotos = {};
+    for (const m of members) {
+      const arr = Array.isArray(m.imgs) ? m.imgs.filter(u => typeof u === 'string' && u) : [];
+      if (arr.length > 0 && m.name) {
+        memberPhotos[encodeFirebaseKey(m.name)] = arr;
+      } else if (m.img && m.name) {
+        // Fallback for the old single-image field
+        memberPhotos[encodeFirebaseKey(m.name)] = [m.img];
+      }
+    }
+    // v2.7.3.5: for actor decks (movies mode with a single "leading"
+    // member in the grid), find that member's photos and use them as
+    // the fallback for every character in the pool that doesn't have
+    // its own portrait. This delivers the one-face-for-every-role
+    // pattern: Michael B. Jordan's face on every card, whether it's
+    // Adonis Creed, Killmonger, or Oscar Grant, with the character's
+    // NAME as the label. If the user later adds a member entry for a
+    // specific character with its own portrait (e.g. someone else
+    // playing opposite him), that specific portrait wins over the
+    // actor-face fallback.
+    let actorFacePhotos = null;
+    try {
+      const currentType = document.querySelector('input[name=contentType]:checked').value;
+      if (currentType === 'movie') {
+        // Pick the "actor" — member with the most photos. Ties broken
+        // by order (first wins).
+        const scored = members
+          .map(m => ({
+            m,
+            imgs: Array.isArray(m.imgs) ? m.imgs.filter(u => typeof u === 'string' && u) : []
+          }))
+          .filter(x => x.imgs.length > 0)
+          .sort((a, b) => b.imgs.length - a.imgs.length);
+        if (scored.length > 0) actorFacePhotos = scored[0].imgs.slice();
+      }
+    } catch(_) {}
+
+    // For characters mentioned in the pool that lack their own member
+    // entry with photos, fall back to actor face first, movie poster
+    // second.
+    for (const entry of pool) {
+      const name = (entry.memberName || '').trim();
+      if (!name) continue;
+      const key = encodeFirebaseKey(name);
+      if (memberPhotos[key] && memberPhotos[key].length > 0) continue;
+      if (actorFacePhotos && actorFacePhotos.length > 0) {
+        memberPhotos[key] = actorFacePhotos.slice();
+        continue;
+      }
+      const fallback = entry._fallbackFace;
+      if (fallback && typeof fallback === 'string') {
+        memberPhotos[key] = [fallback];
+      }
+    }
+
+    // Full deck object matching module 56's shape. Members + rich pool
+    // fields (imageUrls, IDs) are omitted — the card system only needs
+    // text data because it renders cards client-side without images.
+    // If you want to preserve the full data for round-tripping to
+    // another builder, use "Export deck file" (JSON) instead.
+    //
+    // IMPORTANT: set `id: deckId` so CloudStore.put stores at Firebase
+    // key = deckId. Without this, put() would autogenerate an id like
+    // 'auto_XXX' and later deletes/updates keyed by deckId would miss.
+    //
+    // v1.4: memberPhotos is a deck-level map ({name → data URL}) so
+    // photos aren't duplicated across every track. Module 56 reads
+    // this at card generation time and stamps the correct URL onto
+    // each generated card. Empty object is fine — cards fall back to
+    // initials render.
+    const deckObj = {
+      id: deckId,
+      deckId: deckId,
+      deckName: artistNameVal,
+      publishedBy: publisher,
+      publishedAt: firebase.database.ServerValue.TIMESTAMP,
+      trackCount: tracks.length,
+      memberPhotos: memberPhotos,
+      tracks: tracks
+    };
+
+    await CloudStore.put('decks', deckObj);
+    await setMeta('deckId', deckId);
+    updateDeckIdStatus();
+
+    // Size estimate so the user can gauge what got pushed. v2.7.3:
+    // count total photo SLOTS, not members, since each member is now an
+    // array of photos.
+    const sizeKB = (JSON.stringify(deckObj).length / 1024).toFixed(1);
+    const memberCount = Object.keys(memberPhotos).length;
+    const photoSlotCount = Object.values(memberPhotos).reduce((s, arr) => s + arr.length, 0);
+    const withArt = tracks.filter(t => t.trackImageUrl).length;
+    let statusMsg = '✓ Published "' + artistNameVal + '" (id: ' + deckId + ') — ' +
+      tracks.length + ' tracks (' + withArt + ' with art), ' + memberCount + ' members with ' + photoSlotCount +
+      ' photo slots, ~' + sizeKB +
+      ' KB. Live in Persona City\'s Card Collection now, visible in every room.';
+    if (withArt < tracks.length) {
+      statusMsg += ' ⚠️ ' + (tracks.length - withArt) + ' track(s) have no poster URL — cards for those movies will render on a gradient. Re-fetch the filmography or refill from TMDB to fix.';
+    }
+    $('deckStatus').textContent = statusMsg;
+  } catch(e) {
+    $('deckStatus').textContent = 'Publish failed: ' + (e.message || e);
+  }
+});
+$('exportDeckBtn').addEventListener('click', () => {
+  const artistNameVal = $('deckName').value.trim() || 'untitled-deck';
+  if(!deckId) deckId = slug(artistNameVal) + '_' + Date.now();
+  $('deckStatus').textContent = 'Building export...';
+  try{
+    const parts = [];
+    parts.push('{"kind":"cardforge-deck","version":1,"deckId":' + JSON.stringify(deckId) + ',"artistName":' + JSON.stringify(artistNameVal) + ',"createdAt":' + JSON.stringify(new Date().toISOString()) + ',');
+    parts.push('"members":' + JSON.stringify(members) + ',');
+    parts.push('"pool":[');
+    pool.forEach((p,i) => parts.push((i>0?',':'') + JSON.stringify(p)));
+    parts.push(']}');
+    const blob = new Blob(parts, {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = slug(artistNameVal) + '-deck.json';
+    a.click();
+    setMeta('deckId', deckId);
+    $('deckStatus').textContent = 'Exported "' + artistNameVal + '" — ' + members.length + ' members, ' + pool.length + ' pool entries (' + (blob.size/1024).toFixed(0) + ' KB). Import this file into the Card Collection app.';
+  }catch(e){ $('deckStatus').textContent = 'Export failed: ' + e.message; }
+});
+
+// ---------------- face bubble crop editor ----------------
+const EDIT_STAGE = 240, EDIT_OUT = 320;
+let editState = null;
+function editLayout(){
+  const s = editState;
+  const dispW = s.img.naturalWidth * s.baseScale * s.zoom;
+  const dispH = s.img.naturalHeight * s.baseScale * s.zoom;
+  $('editImg').style.width = dispW + 'px';
+  $('editImg').style.height = dispH + 'px';
+  $('editImg').style.left = s.offX + 'px';
+  $('editImg').style.top = s.offY + 'px';
+}
+async function openEditModal(memberId, photoIndex){
+  const m = members.find(x=>x.id===memberId);
+  if(!m) return;
+  const imgs = getMemberImgs(m);
+  if(photoIndex === undefined) photoIndex = imgs.length - 1;
+  if(!imgs[photoIndex]) return;
+  const img = await loadImg(imgs[photoIndex]);
+  const baseScale = Math.max(EDIT_STAGE/img.naturalWidth, EDIT_STAGE/img.naturalHeight);
+  const zoom = 1.5;
+  const dispW = img.naturalWidth*baseScale*zoom, dispH = img.naturalHeight*baseScale*zoom;
+  editState = {
+    memberId, photoIndex, img, baseScale, zoom,
+    offX: (EDIT_STAGE - dispW)/2, offY: (EDIT_STAGE - dispH)/2,
+    dragging:false, lastX:0, lastY:0
+  };
+  $('editImg').src = imgs[photoIndex];
+  $('editZoom').value = 150;
+  editLayout();
+  $('editModalBg').classList.add('open');
+}
+function closeEditModal(){ $('editModalBg').classList.remove('open'); editState = null; }
+$('editModalClose').addEventListener('click', closeEditModal);
+$('editCancel').addEventListener('click', closeEditModal);
+$('editModalBg').addEventListener('click', e => { if(e.target.id==='editModalBg') closeEditModal(); });
+const stageEl = $('editStage');
+stageEl.addEventListener('pointerdown', e => {
+  if(!editState) return;
+  editState.dragging = true; editState.lastX = e.clientX; editState.lastY = e.clientY;
+  stageEl.setPointerCapture(e.pointerId);
+});
+stageEl.addEventListener('pointermove', e => {
+  if(!editState || !editState.dragging) return;
+  const dx = e.clientX - editState.lastX, dy = e.clientY - editState.lastY;
+  editState.offX += dx; editState.offY += dy;
+  editState.lastX = e.clientX; editState.lastY = e.clientY;
+  editLayout();
+});
+['pointerup','pointercancel','pointerleave'].forEach(evt => stageEl.addEventListener(evt, () => { if(editState) editState.dragging = false; }));
+$('editZoom').addEventListener('input', e => {
+  if(!editState) return;
+  const newZoom = parseInt(e.target.value)/100;
+  const s = editState;
+  const oldDispW = s.img.naturalWidth*s.baseScale*s.zoom, oldDispH = s.img.naturalHeight*s.baseScale*s.zoom;
+  const centerFracX = (EDIT_STAGE/2 - s.offX) / oldDispW;
+  const centerFracY = (EDIT_STAGE/2 - s.offY) / oldDispH;
+  s.zoom = newZoom;
+  const newDispW = s.img.naturalWidth*s.baseScale*s.zoom, newDispH = s.img.naturalHeight*s.baseScale*s.zoom;
+  s.offX = EDIT_STAGE/2 - centerFracX*newDispW;
+  s.offY = EDIT_STAGE/2 - centerFracY*newDispH;
+  editLayout();
+});
+$('editSave').addEventListener('click', async () => {
+  if(!editState) return;
+  const s = editState;
+  const ratio = EDIT_OUT / EDIT_STAGE;
+  const dispW = s.img.naturalWidth*s.baseScale*s.zoom, dispH = s.img.naturalHeight*s.baseScale*s.zoom;
+  const canvas = document.createElement('canvas'); canvas.width = EDIT_OUT; canvas.height = EDIT_OUT;
+  const ctx = canvas.getContext('2d');
+  ctx.beginPath(); ctx.arc(EDIT_OUT/2, EDIT_OUT/2, EDIT_OUT/2, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  ctx.drawImage(s.img, s.offX*ratio, s.offY*ratio, dispW*ratio, dispH*ratio);
+  const dataUrl = canvas.toDataURL('image/png');
+  const m = members.find(x=>x.id===s.memberId);
+  if(m){
+    const imgs = getMemberImgs(m);
+    imgs[s.photoIndex] = dataUrl;
+    m.imgs = imgs; delete m.img;
+    await idbPut('members', m);
+    renderMembers();
+  }
+  closeEditModal();
+});
+
+// ---------------- init ----------------
+(async function init(){
+  await openDB();
+  members = await idbAll('members');
+  pool = await idbAll('pool');
+  deckId = await getMeta('deckId', null);
+  loadCreds();
+  renderMembers();
+  renderPoolCount();
+  updateDeckIdStatus();
+  updateCloudUI();
+  // Auto-connect to Persona City's Firebase — no config or auth needed.
+  await autoConnect();
+})();
+</script>
+</body>
+</html>
