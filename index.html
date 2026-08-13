@@ -119,7 +119,7 @@
 </head>
 <body>
 
-<h1>Deck Builder <span style="font-size:11px; color:#94a3b8; font-weight:normal;">v2.9.0</span></h1>
+<h1>Deck Builder <span style="font-size:11px; color:#94a3b8; font-weight:normal;">v2.9.1</span></h1>
 <div class="sub">Build one self-contained "deck" per artist: members + face bubbles + discography. Export it, then import into the Card Collection app to actually play.</div>
 
 <div class="panel" id="cloudPanel">
@@ -309,9 +309,17 @@
     <b>Spotify changed this in Feb/Mar 2026.</b> Playlist contents are now readable <b>only for playlists you own or collaborate on</b>, and only with a signed-in Spotify account. The Client ID/Secret in step 1 gets an app token, which is no longer enough — that is what the "Forbidden" error was. Editorial playlists (Today's Top Hits, Discover Weekly, RapCaviar) can no longer be read at all by any app.
   </div>
   <div class="status" style="font-size:11px;margin-top:8px;">
-    One-time setup: open your app at developer.spotify.com/dashboard → Edit Settings → add this exact Redirect URI → Save.<br>
-    <code id="redirectUriDisplay" style="color:var(--accent);word-break:break-all;">—</code>
+    One-time setup: developer.spotify.com/dashboard → <b>your app</b> → Settings → Edit → Redirect URIs → paste the string below → <b>Add</b> → <b>Save</b>. It must match character for character, including https, any trailing slash, and letter case.
   </div>
+  <div class="row" style="gap:6px;align-items:flex-end;">
+    <div style="flex:1;min-width:0;">
+      <label style="margin-top:6px;">Redirect URI (auto-detected from this page's address)</label>
+      <input type="text" id="redirectUriInput" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--accent);">
+    </div>
+    <button class="secondary small" id="copyRedirectBtn" type="button" style="margin-bottom:1px;">Copy</button>
+    <button class="ghost small" id="resetRedirectBtn" type="button" style="margin-bottom:1px;">Reset</button>
+  </div>
+  <div class="status" style="font-size:11px;" id="redirectUriHint"></div>
   <div class="row" style="margin-top:10px;">
     <button id="spotifyLoginBtn" type="button">🔑 Sign in with Spotify</button>
     <button class="secondary" id="myPlaylistsBtn" type="button" style="display:none;">📚 My playlists</button>
@@ -1337,10 +1345,25 @@ let spotifyUserId = null;
 let playlistPreviewData = null;
 let playlistSources = [];
 
+// Must match a Redirect URI registered on the Spotify app EXACTLY, and
+// the SAME string has to be sent again at token-exchange time. The
+// auto-detected value is this page's own address with query and hash
+// stripped. The override exists because hosts serve the same page under
+// more than one address: GitHub Pages will answer both
+// https://user.github.io/repo/ and https://user.github.io/repo/index.html,
+// so whichever one you registered is the one that has to be sent.
 function pkceRedirectUri(){
-  // Must match a Redirect URI registered on the Spotify app EXACTLY.
-  // Query string and hash are stripped so a post-login reload is stable.
+  let override = null;
+  try{ override = localStorage.getItem('cf_redirect_override'); }catch(e){}
+  if(override && override.trim()) return override.trim();
   return location.origin + location.pathname;
+}
+function redirectUriWarning(uri){
+  if(location.protocol === 'file:') return '\u26a0 This page is open from a file:// path, which has no web address. Spotify login cannot work here \u2014 host the file (GitHub Pages) or serve it on http://127.0.0.1:PORT.';
+  if(/^https:\/\//.test(uri)) return '';
+  if(/^http:\/\/(127\.0\.0\.1|\[::1\])(:|\/|$)/.test(uri)) return 'Loopback address \u2014 allowed by Spotify.';
+  if(/^http:\/\/localhost/.test(uri)) return '\u26a0 Spotify rejects any redirect URI containing "localhost". Serve the page on http://127.0.0.1:PORT instead and reload.';
+  return '\u26a0 Spotify only accepts https:// URIs, or http:// on a loopback address (127.0.0.1 / [::1]).';
 }
 function randomVerifier(n){
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
@@ -1375,10 +1398,16 @@ async function startSpotifyLogin(){
     localStorage.setItem('cf_pkce_client', clientId);
   }catch(e){}
   const challenge = await pkceChallenge(verifier);
+  // Freeze the exact URI now. If the browser lands back on a slightly
+  // different address (added/dropped trailing slash, index.html resolved),
+  // recomputing it at exchange time would send a different string and the
+  // token call would fail with "Invalid redirect URI".
+  const redirectUri = pkceRedirectUri();
+  try{ localStorage.setItem('cf_pkce_redirect', redirectUri); }catch(e){}
   const q = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
-    redirect_uri: pkceRedirectUri(),
+    redirect_uri: redirectUri,
     code_challenge_method: 'S256',
     code_challenge: challenge,
     scope: PKCE_SCOPES
@@ -1408,7 +1437,7 @@ async function handlePkceRedirect(){
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body: new URLSearchParams({
         grant_type:'authorization_code', code,
-        redirect_uri: pkceRedirectUri(),
+        redirect_uri: (localStorage.getItem('cf_pkce_redirect') || pkceRedirectUri()),
         client_id: clientId, code_verifier: verifier
       }).toString()
     });
@@ -1485,8 +1514,11 @@ async function spotifyUserGet(url, onWait){
 }
 
 async function updateSpotifyAuthUI(){
-  const el = $('redirectUriDisplay');
-  if(el) el.textContent = (location.protocol === 'file:') ? 'unavailable on file:// \u2014 host the page first' : pkceRedirectUri();
+  const el = $('redirectUriInput');
+  if(el && document.activeElement !== el){
+    el.value = pkceRedirectUri();
+    $('redirectUriHint').textContent = redirectUriWarning(el.value);
+  }
   const signedIn = !!(userToken && userToken.access_token);
   $('spotifyLoginBtn').style.display = signedIn ? 'none' : 'inline-block';
   $('spotifyLogoutBtn').style.display = signedIn ? 'inline-block' : 'none';
@@ -1501,6 +1533,24 @@ async function updateSpotifyAuthUI(){
   }
 }
 
+$('redirectUriInput').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  try{
+    if(v && v !== (location.origin + location.pathname)) localStorage.setItem('cf_redirect_override', v);
+    else localStorage.removeItem('cf_redirect_override');
+  }catch(err){}
+  $('redirectUriHint').textContent = redirectUriWarning(v);
+});
+$('copyRedirectBtn').addEventListener('click', async () => {
+  const v = $('redirectUriInput').value;
+  try{ await navigator.clipboard.writeText(v); $('redirectUriHint').textContent = 'Copied \u2014 paste it into the Spotify dashboard, click Add, then Save.'; }
+  catch(e){ $('redirectUriInput').select(); $('redirectUriHint').textContent = 'Selected \u2014 press Ctrl+C to copy.'; }
+});
+$('resetRedirectBtn').addEventListener('click', () => {
+  try{ localStorage.removeItem('cf_redirect_override'); }catch(e){}
+  $('redirectUriInput').value = location.origin + location.pathname;
+  $('redirectUriHint').textContent = redirectUriWarning($('redirectUriInput').value);
+});
 $('spotifyLoginBtn').addEventListener('click', () => { startSpotifyLogin(); });
 $('spotifyLogoutBtn').addEventListener('click', () => { clearUserToken(); $('myPlaylistPicker').style.display='none'; updateSpotifyAuthUI(); });
 
